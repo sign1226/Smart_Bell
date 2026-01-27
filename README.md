@@ -1,51 +1,115 @@
-# SmartBell - モダンなMQTT呼出＆チャットアプリ
+# 🔔 SmartBell
 
-SmartBellは、MQTTプロトコルを活用したリアルタイム呼出（ドアベル/インターホン）およびチャット機能を備えたAndroidアプリケーションです。Capacitorを使用したハイブリッドなアプローチにより、リッチなUIと強力なネイティブ機能の両立を実現しています。
+**家庭内や施設内での「呼び出し」と「チャット」を実現するスマートベルアプリ**
 
-## 🌟 主な機能
+MQTTプロトコルを利用したリアルタイム通信で、離れた場所にいる家族や同僚に瞬時に通知を届けます。Androidネイティブ機能を活用し、アプリがバックグラウンドでも確実に着信・メッセージを受信できます。
 
-- **🚀 ワンタップ呼出**: ホーム画面から巨大なベルアイコンをタップするだけで、登録されたデバイスを即座に鳴らすことができます。
-- **💬 リアルタイムチャット**: 送信相手を選んでメッセージを送受信。Androidのヘッドアップ通知（バナー表示）に対応しており、重要な連絡を見逃しません。
-- **🎨 ミニマリストデザイン**: 黒を基調としたプレミアムなダークモードUI。直感的なアイコン操作を重視した洗練されたデザインです。
-- **📟 ホーム画面ウィジェット**: 特定の連絡先を呼び出すための専用ボタンをホーム画面に配置可能（配置時に呼出相手を選択可能）。
-- **🔔 高度な通知**: アプリがバックグラウンドにあってもMQTT経由で信号を受信し、フルスクリーン着信画面やチャット通知を表示します。
+---
+
+## ✨ 主な機能
+
+### 📞 ワンタップ呼び出し
+大きなベルボタンをタップするだけで、登録した相手に即座に呼び出しを送信。全員への一斉通知も、特定の相手への個別通知も自由自在です。
+
+### 💬 リアルタイムチャット
+テキストメッセージを送受信できるチャット機能を搭載。LINEのようなヘッドアップ通知で、ホーム画面にいてもメッセージを見逃しません。
+
+### 📱 フル画面着信表示
+着信時は専用の全画面UIが表示され、誰からの呼び出しかが一目で分かります。バックグラウンドやロック画面でも動作します。
+
+### 🔧 ホーム画面ウィジェット
+特定の相手をワンタップで呼び出せるウィジェットを配置できます。毎回アプリを開く必要がなく、素早いアクションが可能です。
+
+---
+
+## 📸 スクリーンショット
+
+### セットアップ
+
+| 通知許可 | オーバーレイ許可 | バックグラウンド許可 |
+|:---:|:---:|:---:|
+| ![通知許可](android/screenshots/Screenshot_20260127_100545.png) | ![オーバーレイ](android/screenshots/Screenshot_20260127_100642.png) | ![バックグラウンド](android/screenshots/Screenshot_20260127_100715.png) |
+
+アプリ初回起動時に、着信の確実な受信のために必要な権限を案内します。
+
+---
+
+### メイン画面
+
+| 呼び出し画面 | 着信画面 |
+|:---:|:---:|
+| ![呼び出し](android/screenshots/Screenshot_20260127_100730.png) | ![着信](android/screenshots/Screenshot_20260127_100734.png) |
+
+- **呼び出し画面**: 中央の大きなベルボタンで発信。上部のドロップダウンから宛先を選択可能。
+- **着信画面**: 赤い背景でアラート表示。発信者名と「確認・停止」ボタンを表示。
+
+---
+
+### チャット機能
+
+| チャット画面 | 宛先選択 | 連絡先追加 |
+|:---:|:---:|:---:|
+| ![チャット](android/screenshots/Screenshot_20260127_100832.png) | ![宛先選択](android/screenshots/Screenshot_20260127_100859.png) | ![連絡先追加](android/screenshots/Screenshot_20260127_100838.png) |
+
+- 吹き出し形式のモダンなメッセージUI
+- 全員への一斉配信と個別送信を切り替え可能
+- 連絡先はアプリ内で簡単に追加・管理
+
+---
 
 ## 🛠 技術スタック
 
-- **Frontend**: React, TypeScript, Vite
-- **Styling**: Vanilla CSS (Inline Styles for stability in WebView)
-- **Native Bridge**: Capacitor
-- **Backend Messaging**: MQTT (Paho Android Client)
-- **Icons**: Lucide React
-- **Animations**: Framer Motion
+| カテゴリ | 技術 |
+|----------|------|
+| **フロントエンド** | React 19 + TypeScript |
+| **モバイルフレームワーク** | Capacitor 8 |
+| **通信プロトコル** | MQTT（WebSocket経由） |
+| **ネイティブ機能** | Android Foreground Service, Overlay, Widgets |
+| **UI** | Framer Motion, Lucide Icons |
 
-## 🚀 セットアップ方法
+---
 
-1. **環境構築**:
-   - Node.js (v18+)
-   - Android Studio & SDK
+## 🚀 セットアップ
 
-2. **依存関係のインストール**:
-   ```bash
-   npm install
-   ```
+### 前提条件
+- Node.js 18以上
+- Android Studio（Androidビルド用）
+- MQTTブローカー（例: Mosquitto）
 
-3. **ビルドと実行**:
-   ```bash
-   npm run build
-   npx cap sync android
-   npx cap run android
-   ```
+### インストール
 
-4. **MQTTサーバーの設定**:
-   アプリ内の「設定」タブから、MQTTブローカー（ホスト、ポート、トピック）を設定してください。WeaveやMosquittoなどのブローカーが推奨されます。
+```bash
+# リポジトリをクローン
+git clone https://github.com/sign1226/Smart_Bell.git
+cd Smart_Bell
 
-## 📂 プロジェクト構成
+# 依存関係をインストール
+npm install
 
-- `src/`: Reactフロントエンドソース
-- `android/`: Androidネイティブプロジェクト（Java）
-- `android/app/src/main/java/com/smartbell/pro/`: ネイティブ連携プラグイン、MQTTサービス、ウィジェットロジック
+# Webアセットをビルド
+npm run build
 
-## 📝 ライセンス
+# Androidプロジェクトに同期
+npx cap sync android
 
-このプロジェクトは[MITライセンス](LICENSE)の下で公開されています。
+# Android Studioで開く
+npx cap open android
+```
+
+### 設定
+
+1. アプリ内の設定画面でMQTTブローカーの接続情報を入力
+2. 推奨権限（オーバーレイ、バックグラウンド、通知）を許可
+3. 連絡先を追加して呼び出し・チャットを開始
+
+---
+
+## 📄 ライセンス
+
+MIT License
+
+---
+
+## 🤝 コントリビューション
+
+Issue や Pull Request は大歓迎です！バグ報告や機能リクエストもお気軽にどうぞ。
