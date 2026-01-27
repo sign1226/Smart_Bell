@@ -139,7 +139,7 @@ brew services start mosquitto
 #### Docker
 
 ```bash
-docker run -d --name mosquitto -p 1883:1883 -p 9001:9001 eclipse-mosquitto
+docker run -d --name mosquitto -p 1883:1883 -p 8083:8083 eclipse-mosquitto
 ```
 
 ### 設定例 (`mosquitto.conf`)
@@ -152,7 +152,7 @@ listener 1883
 protocol mqtt
 
 # WebSocket用リスナー（SmartBellはこちらを使用）
-listener 9001
+listener 8083
 protocol websockets
 
 # 認証なし（開発・家庭内LAN用）
@@ -173,9 +173,9 @@ log_type all
 | 設定項目 | 値の例 |
 |----------|--------|
 | **ホスト** | `192.168.1.100`（ブローカーのIPアドレス） |
-| **ポート** | `9001`（WebSocketポート） |
+| **ポート** | `8083`（WebSocketポート） |
 
-> **⚠️ 注意**: ポートには**WebSocket用のポート（9001）**を指定してください。標準MQTTポート（1883）ではなく、WebSocketリスナーのポートを使用します。
+> **⚠️ 注意**: ポートには**WebSocket用のポート（8083）**を指定してください。標準MQTTポート（1883）ではなく、WebSocketリスナーのポートを使用します。
 
 ### 動作確認
 
