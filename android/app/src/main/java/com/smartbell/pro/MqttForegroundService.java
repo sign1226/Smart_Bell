@@ -217,6 +217,7 @@ public class MqttForegroundService extends Service {
             if (deviceId != null && !deviceId.isEmpty()) {
                 mqttClient.subscribe("smartbell/call/" + deviceId);
                 mqttClient.subscribe("smartbell/chat/" + deviceId);
+                mqttClient.subscribe("smartbell/chat/all");
             }
 
             Log.d(TAG, "MQTT Connected");
