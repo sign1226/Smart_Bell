@@ -7,9 +7,9 @@ interface ChatViewProps {
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({ sendChat }) => {
-    const { chatHistory, isConnected, contacts, addContact, clearChatHistory } = useApp();
+    const { chatHistory, isConnected, contacts, addContact, clearChatHistory, defaultRecipientId } = useApp();
     const [message, setMessage] = useState('');
-    const [targetId, setTargetId] = useState('');
+    const [targetId, setTargetId] = useState(defaultRecipientId || '');
     const [showContactSelector, setShowContactSelector] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 

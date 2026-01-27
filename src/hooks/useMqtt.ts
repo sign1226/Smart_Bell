@@ -150,7 +150,9 @@ export const useMqtt = () => {
 
     const sendChat = useCallback((text: string, targetId?: string) => {
         if (clientRef.current && clientRef.current.connected) {
+            const msgId = crypto.randomUUID();
             const payload = {
+                id: msgId,
                 cmd: 'chat',
                 from: config.clientId,
                 fromId: deviceId,
@@ -162,7 +164,7 @@ export const useMqtt = () => {
 
             // Add self message to history
             addChatMessage({
-                id: Date.now().toString(),
+                id: msgId,
                 from: config.clientId,
                 fromId: deviceId,
                 text,

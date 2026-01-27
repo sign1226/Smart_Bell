@@ -5,7 +5,7 @@ import IncomingCall from '../plugins/IncomingCall';
 import { ContactsView } from './ContactsView';
 
 export const SettingsView: React.FC = () => {
-    const { config, setConfig, deviceId } = useApp();
+    const { config, setConfig, deviceId, contacts, defaultRecipientId, setDefaultRecipientId } = useApp();
     const [localConfig, setLocalConfig] = useState(config);
     const [view, setView] = useState<'main' | 'contacts'>('main');
 
@@ -96,6 +96,25 @@ export const SettingsView: React.FC = () => {
                     {ringtones.map((ringtone, index) => (
                         <option key={index} value={ringtone.uri}>
                             {ringtone.title}
+                        </option>
+                    ))}
+                </select>
+            </section>
+
+            <section style={{ marginBottom: '25px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: 'bold' }}>
+                    <Users size={18} />
+                    デフォルト送信先
+                </label>
+                <select
+                    value={defaultRecipientId}
+                    onChange={(e) => setDefaultRecipientId(e.target.value)}
+                    style={{ width: '100%', padding: '12px', background: '#111', border: '1px solid #333', color: '#fff', borderRadius: '8px' }}
+                >
+                    <option value="">全員 (一斉配信)</option>
+                    {contacts.map((contact) => (
+                        <option key={contact.id} value={contact.id}>
+                            {contact.name}
                         </option>
                     ))}
                 </select>

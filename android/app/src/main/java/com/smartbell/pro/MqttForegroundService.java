@@ -246,6 +246,13 @@ public class MqttForegroundService extends Service {
             } else if ("chat".equals(cmd)) {
                 String sender = payload.optString("from", "誰か");
                 String text = payload.optString("text", "メッセージが届きました");
+                String fromId = payload.optString("fromId", "");
+
+                // Skip if message is from self
+                if (fromId.equals(deviceId)) {
+                    Log.d(TAG, "Ignoring self-sent chat message");
+                    return;
+                }
 
                 // Broadcast chat message to JS
                 Intent broadcast = new Intent("com.smartbell.pro.CHAT_MESSAGE");

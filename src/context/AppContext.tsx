@@ -53,6 +53,8 @@ interface AppState {
   setIsRemoteOnline: (online: boolean) => void;
   connectionError: string | null;
   setConnectionError: (error: string | null) => void;
+  defaultRecipientId: string;
+  setDefaultRecipientId: (id: string) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -94,6 +96,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isRinging, setIsRinging] = useState(false);
   const [isRemoteOnline, setIsRemoteOnline] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [defaultRecipientId, setDefaultRecipientId] = useState<string>(() => {
+    return localStorage.getItem('bell_default_recipient') || '';
+  });
 
   useEffect(() => {
     localStorage.setItem('bell_mode', mode);
@@ -112,6 +117,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem('bell_chat_history', JSON.stringify(chatHistory));
   }, [chatHistory]);
+
+  useEffect(() => {
+    localStorage.setItem('bell_default_recipient', defaultRecipientId);
+  }, [defaultRecipientId]);
 
   const addChatMessage = useCallback((msg: ChatMessage) => {
     setChatHistory(prev => {
@@ -187,7 +196,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       contacts, addContact, removeContact,
       isRinging, setIsRinging: useCallback((ringing: boolean) => setIsRinging(ringing), []),
       isRemoteOnline, setIsRemoteOnline: useCallback((online: boolean) => setIsRemoteOnline(online), []),
-      connectionError, setConnectionError: useCallback((error: string | null) => setConnectionError(error), [])
+      connectionError, setConnectionError: useCallback((error: string | null) => setConnectionError(error), []),
+      defaultRecipientId, setDefaultRecipientId: (id: string) => setDefaultRecipientId(id)
     }}>
       {children}
     </AppContext.Provider>

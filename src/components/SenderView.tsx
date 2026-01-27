@@ -8,10 +8,10 @@ interface SenderViewProps {
 }
 
 export const SenderView: React.FC<SenderViewProps> = ({ sendCall }) => {
-    const { isConnected, connectionError, config, contacts } = useApp();
+    const { isConnected, connectionError, config, contacts, defaultRecipientId } = useApp();
     const [cooldown, setCooldown] = useState(0);
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
-    const [targetId, setTargetId] = useState('');
+    const [targetId, setTargetId] = useState(defaultRecipientId || '');
     const [showContactSelector, setShowContactSelector] = useState(false);
 
     useEffect(() => {
