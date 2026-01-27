@@ -70,7 +70,7 @@ public class MqttForegroundService extends Service {
                 Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                         .setContentTitle("SmartBell Service")
                         .setContentText("Listening for incoming calls...")
-                        .setSmallIcon(android.R.drawable.ic_dialog_info)
+                        .setSmallIcon(R.mipmap.ic_launcher)
                         .setContentIntent(pendingIntent)
                         .setOngoing(true)
                         .build();
@@ -188,8 +188,8 @@ public class MqttForegroundService extends Service {
             MqttConnectOptions options = new MqttConnectOptions();
             options.setAutomaticReconnect(true);
             options.setCleanSession(false); // Changed to false for better persistence
-            options.setConnectionTimeout(30);
-            options.setKeepAliveInterval(30); // Shorter keepalive
+            options.setConnectionTimeout(60);
+            options.setKeepAliveInterval(60); // 1 minute keepalive for mobile
 
             mqttClient.connect(options);
 
@@ -274,7 +274,7 @@ public class MqttForegroundService extends Service {
         Notification notification = new NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
                 .setContentTitle(sender + " からのメッセージ")
                 .setContentText(text)
-                .setSmallIcon(android.R.drawable.ic_dialog_email)
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)

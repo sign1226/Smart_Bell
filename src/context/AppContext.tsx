@@ -130,13 +130,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       mode, setMode,
       config, setConfig,
       deviceId,
-      isConnected, setIsConnected,
+      isConnected, setIsConnected: useCallback((connected: boolean) => setIsConnected(connected), []),
       history, addHistory,
       chatHistory, addChatMessage,
       contacts, addContact, removeContact,
-      isRinging, setIsRinging,
-      isRemoteOnline, setIsRemoteOnline,
-      connectionError, setConnectionError
+      isRinging, setIsRinging: useCallback((ringing: boolean) => setIsRinging(ringing), []),
+      isRemoteOnline, setIsRemoteOnline: useCallback((online: boolean) => setIsRemoteOnline(online), []),
+      connectionError, setConnectionError: useCallback((error: string | null) => setConnectionError(error), [])
     }}>
       {children}
     </AppContext.Provider>

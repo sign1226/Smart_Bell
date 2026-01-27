@@ -141,7 +141,7 @@ export const useMqtt = () => {
 
     useEffect(() => {
         connect();
-        const interval = setInterval(sendHeartbeat, 5000);
+        const interval = setInterval(sendHeartbeat, 30000); // Increased heartbeat interval
         return () => {
             if (clientRef.current) clientRef.current.end();
             clearInterval(interval);

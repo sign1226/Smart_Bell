@@ -112,7 +112,7 @@ public class IncomingCallPlugin extends Plugin {
         // 通知の作成
         androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(context,
                 channelId)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("")
                 .setContentText("")
                 .setPriority(androidx.core.app.NotificationCompat.PRIORITY_MIN) // 最小優先度

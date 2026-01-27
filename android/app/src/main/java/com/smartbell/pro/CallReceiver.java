@@ -64,7 +64,7 @@ public class CallReceiver extends BroadcastReceiver {
 
         // 通知の作成
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("🔔 呼び出し！")
                 .setContentText("呼び出しが発生しました")
                 .setPriority(NotificationCompat.PRIORITY_MAX)
