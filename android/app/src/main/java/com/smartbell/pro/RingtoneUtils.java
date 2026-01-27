@@ -22,6 +22,7 @@ public class RingtoneUtils {
         this.context = context;
     }
 
+    @SuppressWarnings("deprecation")
     public synchronized void playRingtone(String uriString) {
         stopRingtone(); // Stop if already playing
 
