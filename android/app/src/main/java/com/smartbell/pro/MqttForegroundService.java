@@ -79,25 +79,7 @@ public class MqttForegroundService extends Service {
 
                 connectMqtt();
             } else if ("com.smartbell.pro.ACTION_TRIGGER_CALL".equals(action)) {
-                // This action is likely from a widget or direct intent to trigger a call
-                // without necessarily starting the full foreground service for listening.
-                // We need to ensure MQTT client is connected to send the message.
-                // For a one-shot action, we might connect, send, then disconnect/stop.
-                // Or, if the service is already running (e.g., from ACTION_START), it uses the
-                // existing connection.
-                // For simplicity, let's assume it's a one-shot trigger and connect if not
-                // connected.
-                // If the service is not running, it will be started, connect, send, then stop.
-
-                host = intent.getStringExtra("host"); // Need host/port/clientId to connect if not already connected
-                port = intent.getIntExtra("port", 1883);
-                topic = intent.getStringExtra("topic");
-                clientId = intent.getStringExtra("clientId"); // Used for 'from' field in payload
-
-                if (mqttClient == null || !mqttClient.isConnected()) {
-                    connectMqtt(); // Attempt to connect if not already connected
-                }
-
+                // ウィジェットからの呼び出し - 既存のMQTT接続を使用してメッセージを送信
                 if (mqttClient != null && mqttClient.isConnected()) {
                     String targetId = intent.getStringExtra("targetId");
                     Log.d(TAG, "Triggering call from service to target: " + (targetId != null ? targetId : "全員"));
@@ -118,8 +100,11 @@ public class MqttForegroundService extends Service {
                     }
                 } else {
                     Log.e(TAG, "MQTT client not connected, cannot trigger call.");
+                    // ユーザーに接続されていないことを通知
+                    android.widget.Toast.makeText(this, "MQTTに接続されていません。アプリを開いてください。", android.widget.Toast.LENGTH_LONG)
+                            .show();
                 }
-                stopSelf(); // Stop the service after triggering the call
+                // 注意: stopSelf()を削除 - サービスを継続して実行
             } else if (ACTION_STOP.equals(action)) {
                 disconnectMqtt();
                 if (wakeLock != null && wakeLock.isHeld()) {

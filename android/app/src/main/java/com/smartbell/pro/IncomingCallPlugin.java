@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.PowerManager;
 import android.provider.Settings;
 
+@SuppressWarnings("unchecked")
 @CapacitorPlugin(name = "IncomingCall")
 public class IncomingCallPlugin extends Plugin {
 
