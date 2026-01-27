@@ -174,14 +174,27 @@ public class IncomingCallPlugin extends Plugin {
     public void saveRingtoneSettings(PluginCall call) {
         String uri = call.getString("uri");
         String host = call.getString("host");
+        Boolean vibrationEnabled = call.getBoolean("vibrationEnabled");
+        String vibrationPattern = call.getString("vibrationPattern");
 
         android.content.SharedPreferences.Editor editor = getContext()
                 .getSharedPreferences("com.smartbell.pro.settings", android.content.Context.MODE_PRIVATE).edit();
-        if (uri != null) {
+
+        // uriがnullまたは空文字列の場合はシステムデフォルトを意味するのでnullとして保存
+        if (uri == null || uri.isEmpty()) {
+            editor.remove("ringtone_uri");
+        } else {
             editor.putString("ringtone_uri", uri);
         }
+
         if (host != null) {
             editor.putString("mqtt_host", host);
+        }
+        if (vibrationEnabled != null) {
+            editor.putBoolean("vibration_enabled", vibrationEnabled);
+        }
+        if (vibrationPattern != null) {
+            editor.putString("vibration_pattern", vibrationPattern);
         }
         editor.apply();
 

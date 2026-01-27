@@ -51,29 +51,52 @@ public class RingtoneUtils {
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setDataSource(context, ringtoneUri);
 
-            AudioAttributes attributes = new AudioAttributes.Builder()
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build();
-            mediaPlayer.setAudioAttributes(attributes);
+            mediaPlayer.setAudioAttributes(audioAttributes);
 
             mediaPlayer.setLooping(true);
             mediaPlayer.prepare();
             mediaPlayer.start();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to play ringtone", e);
+            // MediaPlayer failed, but we still want to try vibration if enabled
+        }
 
-            // Vibration logic
+        // Vibration logic
+        android.content.SharedPreferences prefs = context.getSharedPreferences("com.smartbell.pro.settings",
+                Context.MODE_PRIVATE);
+        boolean vibrationEnabled = prefs.getBoolean("vibration_enabled", true);
+        String vibrationPatternStr = prefs.getString("vibration_pattern", "standard");
+
+        if (vibrationEnabled) {
             vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
             if (vibrator != null && vibrator.hasVibrator()) {
-                long[] pattern = { 0, 1000, 1000 }; // Wait 0ms, vibrate 1000ms, sleep 1000ms
+                long[] pattern;
+                switch (vibrationPatternStr) {
+                    case "short":
+                        pattern = new long[] { 0, 200, 500 };
+                        break;
+                    case "rapid":
+                        pattern = new long[] { 0, 300, 200 };
+                        break;
+                    case "heartbeat":
+                        pattern = new long[] { 0, 100, 100, 100, 600 };
+                        break;
+                    case "standard":
+                    default:
+                        pattern = new long[] { 0, 1000, 1000 };
+                        break;
+                }
+
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                     vibrator.vibrate(VibrationEffect.createWaveform(pattern, 0)); // 0 means repeat from index 0
                 } else {
                     vibrator.vibrate(pattern, 0);
                 }
             }
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to play ringtone", e);
-            // Fallback attempt or silent fail
         }
     }
 

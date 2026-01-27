@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Bell, UserCircle, Users } from 'lucide-react';
+import { Bell, UserCircle, Users, Vibrate } from 'lucide-react';
 import IncomingCall from '../plugins/IncomingCall';
 import { ContactsView } from './ContactsView';
 
@@ -14,6 +14,9 @@ export const SettingsView: React.FC = () => {
     const [selectedRingtone, setSelectedRingtone] = useState<string>('');
     const [chatRingtones, setChatRingtones] = useState<{ title: string; uri: string }[]>([]);
     const [selectedChatRingtone, setSelectedChatRingtone] = useState<string>('');
+
+    const [vibrationEnabled, setVibrationEnabled] = useState<boolean>(true);
+    const [vibrationPattern, setVibrationPattern] = useState<string>('standard');
 
     useEffect(() => {
         // 着信音一覧の取得
@@ -40,6 +43,12 @@ export const SettingsView: React.FC = () => {
 
         const savedRingtone = localStorage.getItem('bell_ringtone');
         if (savedRingtone) setSelectedRingtone(savedRingtone);
+
+        const savedVibEnabled = localStorage.getItem('bell_vibration_enabled');
+        if (savedVibEnabled !== null) setVibrationEnabled(savedVibEnabled === 'true');
+
+        const savedVibPattern = localStorage.getItem('bell_vibration_pattern');
+        if (savedVibPattern) setVibrationPattern(savedVibPattern);
     }, []);
 
     // Auto-save effect
@@ -49,13 +58,20 @@ export const SettingsView: React.FC = () => {
             localStorage.setItem('bell_config', JSON.stringify(localConfig));
             localStorage.setItem('bell_ringtone', selectedRingtone);
             localStorage.setItem('bell_chat_sound', selectedChatRingtone);
+            localStorage.setItem('bell_vibration_enabled', vibrationEnabled.toString());
+            localStorage.setItem('bell_vibration_pattern', vibrationPattern);
 
             // Native側に設定を保存 (ウィジェット/サービス用)
-            IncomingCall.saveRingtoneSettings({ uri: selectedRingtone, host: localConfig.host });
+            IncomingCall.saveRingtoneSettings({
+                uri: selectedRingtone,
+                host: localConfig.host,
+                vibrationEnabled,
+                vibrationPattern
+            });
             IncomingCall.saveChatSettings({ uri: selectedChatRingtone });
         }, 1000);
         return () => clearTimeout(timer);
-    }, [localConfig, selectedRingtone, selectedChatRingtone, setConfig]);
+    }, [localConfig, selectedRingtone, selectedChatRingtone, vibrationEnabled, vibrationPattern, setConfig]);
 
     if (view === 'contacts') {
         return <ContactsView onBack={() => setView('main')} />;
@@ -139,6 +155,40 @@ export const SettingsView: React.FC = () => {
                         </option>
                     ))}
                 </select>
+            </section>
+
+            <section style={{ marginBottom: '25px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: 'bold' }}>
+                    <Vibrate size={18} />
+                    着信バイブレーション
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', background: '#111', padding: '15px', borderRadius: '12px', border: '1px solid #333' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>バイブレーション有効</span>
+                        <input
+                            type="checkbox"
+                            checked={vibrationEnabled}
+                            onChange={(e) => setVibrationEnabled(e.target.checked)}
+                            style={{ width: '24px', height: '24px', accentColor: '#3b82f6' }}
+                        />
+                    </div>
+
+                    {vibrationEnabled && (
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px' }}>パターン</label>
+                            <select
+                                value={vibrationPattern}
+                                onChange={(e) => setVibrationPattern(e.target.value)}
+                                style={{ width: '100%', padding: '10px', background: '#000', border: '1px solid #444', color: '#fff', borderRadius: '8px' }}
+                            >
+                                <option value="standard">標準 (1秒)</option>
+                                <option value="short">短い (0.2秒)</option>
+                                <option value="rapid">急ぎ (0.3秒間隔)</option>
+                                <option value="heartbeat">心音 (トトッ...)</option>
+                            </select>
+                        </div>
+                    )}
+                </div>
             </section>
 
             <section style={{ marginBottom: '25px' }}>

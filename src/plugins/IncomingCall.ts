@@ -4,7 +4,12 @@ export interface IncomingCallPlugin {
     show(options: { name: string }): Promise<{ success: boolean }>;
     dismiss(): Promise<{ success: boolean }>;
     getRingtones(options?: { type?: 'ringtone' | 'notification' }): Promise<{ ringtones: { title: string; uri: string }[] }>;
-    saveRingtoneSettings(options: { uri: string, host?: string }): Promise<{ success: boolean }>;
+    saveRingtoneSettings(options: {
+        uri: string,
+        host?: string,
+        vibrationEnabled?: boolean,
+        vibrationPattern?: string
+    }): Promise<{ success: boolean }>;
     saveChatSettings(options: { uri: string }): Promise<void>;
     startRingtone(): Promise<{ success: boolean }>;
     stopRingtone(): Promise<{ success: boolean }>;
