@@ -141,6 +141,25 @@ export const SettingsView: React.FC = () => {
                 </select>
             </section>
 
+            <section style={{ marginBottom: '25px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: 'bold' }}>
+                    <Bell size={18} />
+                    チャット通知音
+                </label>
+                <select
+                    value={selectedChatRingtone}
+                    onChange={(e) => setSelectedChatRingtone(e.target.value)}
+                    style={{ width: '100%', padding: '12px', background: '#111', border: '1px solid #333', color: '#fff', borderRadius: '8px' }}
+                >
+                    <option value="">システムデフォルト</option>
+                    {chatRingtones.map((ringtone, index) => (
+                        <option key={index} value={ringtone.uri}>
+                            {ringtone.title}
+                        </option>
+                    ))}
+                </select>
+            </section>
+
             <section style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <div>
                     <label style={{ display: 'block', marginBottom: '5px', opacity: 0.7 }}>MQTTブローカー ホスト名</label>
@@ -192,6 +211,6 @@ export const SettingsView: React.FC = () => {
             >
                 アプリをリロード
             </button>
-        </div>
+        </div >
     );
 };
