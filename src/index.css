@@ -1,0 +1,76 @@
+:root {
+  --bg-color: #0c0c0c;
+  --text-color: #f0f0f0;
+  --accent-color: #ffd700;
+  /* Gold */
+  --danger-color: #ff4d4d;
+  /* Red */
+  --success-color: #4caf50;
+  /* Green */
+  --secondary-bg: #1a1a1a;
+  --button-radius: 12px;
+  --transition-speed: 0.3s;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  overflow: hidden;
+  line-height: 1.5;
+  width: 100vw;
+  height: 100vh;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: all var(--transition-speed);
+}
+
+.container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /* Ensure content is below status bar */
+  padding-top: env(safe-area-inset-top, 40px);
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* Base Utility Classes */
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.high-contrast {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Animations */
+@keyframes flash {
+  0% {
+    background-color: var(--bg-color);
+  }
+
+  50% {
+    background-color: var(--danger-color);
+  }
+
+  100% {
+    background-color: var(--bg-color);
+  }
+}
+
+.flash-red {
+  animation: flash 1s infinite;
+}

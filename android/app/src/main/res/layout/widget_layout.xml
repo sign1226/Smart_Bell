@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:id="@+id/widget_button"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:background="@android:drawable/btn_default"
+        android:backgroundTint="#3b82f6"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_bell_white" />
+    </LinearLayout>
+</LinearLayout>
