@@ -7,6 +7,8 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
@@ -272,28 +274,66 @@ public class MqttForegroundService extends Service {
     }
 
     public static final String ACTION_OPEN_CHAT = "com.smartbell.pro.ACTION_OPEN_CHAT";
-    private static final String CHAT_CHANNEL_ID = "ChatChannel_V3";
+    private static String currentChatChannelId = "ChatChannel_V3";
 
     private void showChatNotification(String sender, String text) {
+        // 更新された通知音設定を読み込む
+        android.content.SharedPreferences prefs = getSharedPreferences("com.smartbell.pro.settings",
+                Context.MODE_PRIVATE);
+        String chatUri = prefs.getString("chat_ringtone_uri", null);
+
+        // Androidの仕様により、一度作成されたチャンネルの音は変更できないため、
+        // 設定が変わっていたら別のIDでチャンネルを再作成する
+        String newChannelId = "ChatChannel_" + (chatUri != null ? chatUri.hashCode() : "default");
+
+        if (!newChannelId.equals(currentChatChannelId)) {
+            currentChatChannelId = newChannelId;
+            createChatNotificationChannel(chatUri);
+        }
+
         Intent notificationIntent = new Intent(this, MainActivity.class);
         notificationIntent.setAction(ACTION_OPEN_CHAT);
         notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
-        Notification notification = new NotificationCompat.Builder(this, CHAT_CHANNEL_ID)
+        Notification notification = new NotificationCompat.Builder(this, currentChatChannelId)
                 .setContentTitle(sender + " からのメッセージ")
                 .setContentText(text)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setDefaults(NotificationCompat.DEFAULT_VIBRATE | NotificationCompat.DEFAULT_LIGHTS)
                 .setFullScreenIntent(pendingIntent, true) // Force heads-up
                 .build();
 
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         manager.notify(2, notification);
+    }
+
+    private void createChatNotificationChannel(String soundUri) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            NotificationChannel chatChannel = new NotificationChannel(
+                    currentChatChannelId,
+                    "SmartBell Chat Messages",
+                    NotificationManager.IMPORTANCE_HIGH);
+            chatChannel.setDescription("Notifications for incoming chat messages");
+            chatChannel.enableVibration(true);
+            chatChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            chatChannel.setBypassDnd(true);
+
+            if (soundUri != null && !soundUri.isEmpty()) {
+                AudioAttributes attributes = new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build();
+                chatChannel.setSound(Uri.parse(soundUri), attributes);
+            }
+
+            manager.createNotificationChannel(chatChannel);
+        }
     }
 
     private synchronized void savePendingChatMessage(String payload) {
@@ -320,16 +360,12 @@ public class MqttForegroundService extends Service {
                     NotificationManager.IMPORTANCE_LOW);
             manager.createNotificationChannel(serviceChannel);
 
-            // Chat Channel (High importance for Heads-up)
-            NotificationChannel chatChannel = new NotificationChannel(
-                    CHAT_CHANNEL_ID,
-                    "SmartBell Chat Messages",
-                    NotificationManager.IMPORTANCE_HIGH);
-            chatChannel.setDescription("Notifications for incoming chat messages");
-            chatChannel.enableVibration(true);
-            chatChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
-            chatChannel.setBypassDnd(true); // Attempt to bypass if allowed
-            manager.createNotificationChannel(chatChannel);
+            // 初回のチャットチャンネル作成 (現在の設定を反映)
+            android.content.SharedPreferences prefs = getSharedPreferences("com.smartbell.pro.settings",
+                    Context.MODE_PRIVATE);
+            String chatUri = prefs.getString("chat_ringtone_uri", null);
+            currentChatChannelId = "ChatChannel_" + (chatUri != null ? chatUri.hashCode() : "default");
+            createChatNotificationChannel(chatUri);
         }
     }
 

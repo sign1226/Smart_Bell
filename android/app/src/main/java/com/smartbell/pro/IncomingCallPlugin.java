@@ -139,8 +139,15 @@ public class IncomingCallPlugin extends Plugin {
 
     @PluginMethod
     public void getRingtones(PluginCall call) {
+        String type = call.getString("type", "ringtone");
         android.media.RingtoneManager manager = new android.media.RingtoneManager(getContext());
-        manager.setType(android.media.RingtoneManager.TYPE_RINGTONE);
+
+        if ("notification".equals(type)) {
+            manager.setType(android.media.RingtoneManager.TYPE_NOTIFICATION);
+        } else {
+            manager.setType(android.media.RingtoneManager.TYPE_RINGTONE);
+        }
+
         android.database.Cursor cursor = manager.getCursor();
 
         com.getcapacitor.JSArray items = new com.getcapacitor.JSArray();
@@ -170,9 +177,7 @@ public class IncomingCallPlugin extends Plugin {
 
         android.content.SharedPreferences.Editor editor = getContext()
                 .getSharedPreferences("com.smartbell.pro.settings", android.content.Context.MODE_PRIVATE).edit();
-        if (uri == null || uri.isEmpty()) {
-            editor.remove("ringtone_uri");
-        } else {
+        if (uri != null) {
             editor.putString("ringtone_uri", uri);
         }
         if (host != null) {
@@ -191,6 +196,18 @@ public class IncomingCallPlugin extends Plugin {
         JSObject ret = new JSObject();
         ret.put("success", true);
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void saveChatSettings(PluginCall call) {
+        String uri = call.getString("uri");
+        android.content.SharedPreferences.Editor editor = getContext()
+                .getSharedPreferences("com.smartbell.pro.settings", android.content.Context.MODE_PRIVATE).edit();
+        if (uri != null) {
+            editor.putString("chat_ringtone_uri", uri);
+        }
+        editor.apply();
+        call.resolve();
     }
 
     @PluginMethod

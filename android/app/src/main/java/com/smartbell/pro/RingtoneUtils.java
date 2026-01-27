@@ -6,6 +6,8 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.util.Log;
 
 import java.io.IOException;
@@ -13,6 +15,7 @@ import java.io.IOException;
 public class RingtoneUtils {
     private static final String TAG = "RingtoneUtils";
     private static MediaPlayer mediaPlayer;
+    private static Vibrator vibrator;
     private Context context;
 
     public RingtoneUtils(Context context) {
@@ -56,6 +59,17 @@ public class RingtoneUtils {
             mediaPlayer.setLooping(true);
             mediaPlayer.prepare();
             mediaPlayer.start();
+
+            // Vibration logic
+            vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+            if (vibrator != null && vibrator.hasVibrator()) {
+                long[] pattern = { 0, 1000, 1000 }; // Wait 0ms, vibrate 1000ms, sleep 1000ms
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createWaveform(pattern, 0)); // 0 means repeat from index 0
+                } else {
+                    vibrator.vibrate(pattern, 0);
+                }
+            }
         } catch (IOException e) {
             Log.e(TAG, "Failed to play ringtone", e);
             // Fallback attempt or silent fail
@@ -69,6 +83,10 @@ public class RingtoneUtils {
             }
             mediaPlayer.release();
             mediaPlayer = null;
+        }
+        if (vibrator != null) {
+            vibrator.cancel();
+            vibrator = null;
         }
     }
 }

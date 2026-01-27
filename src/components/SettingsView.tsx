@@ -12,16 +12,34 @@ export const SettingsView: React.FC = () => {
     // 着信音関連
     const [ringtones, setRingtones] = useState<{ title: string; uri: string }[]>([]);
     const [selectedRingtone, setSelectedRingtone] = useState<string>('');
+    const [chatRingtones, setChatRingtones] = useState<{ title: string; uri: string }[]>([]);
+    const [selectedChatRingtone, setSelectedChatRingtone] = useState<string>('');
 
     useEffect(() => {
         // 着信音一覧の取得
-        IncomingCall.getRingtones().then(result => {
+        IncomingCall.getRingtones({ type: 'ringtone' }).then(result => {
             if (result && result.ringtones) {
                 setRingtones(result.ringtones);
             }
         }).catch(err => {
             console.error('Failed to get ringtones', err);
         });
+
+        // 通知音一覧の取得
+        IncomingCall.getRingtones({ type: 'notification' }).then(result => {
+            if (result && result.ringtones) {
+                setChatRingtones(result.ringtones);
+            }
+        }).catch(err => {
+            console.error('Failed to get notification sounds', err);
+        });
+
+        // 保存済み設定の読み込み (localStorage経由)
+        const savedChatSound = localStorage.getItem('bell_chat_sound');
+        if (savedChatSound) setSelectedChatRingtone(savedChatSound);
+
+        const savedRingtone = localStorage.getItem('bell_ringtone');
+        if (savedRingtone) setSelectedRingtone(savedRingtone);
     }, []);
 
     // Auto-save effect
@@ -29,12 +47,15 @@ export const SettingsView: React.FC = () => {
         const timer = setTimeout(() => {
             setConfig(localConfig);
             localStorage.setItem('bell_config', JSON.stringify(localConfig));
+            localStorage.setItem('bell_ringtone', selectedRingtone);
+            localStorage.setItem('bell_chat_sound', selectedChatRingtone);
 
-            // Native側に設定を保存 (ウィジェット用)
+            // Native側に設定を保存 (ウィジェット/サービス用)
             IncomingCall.saveRingtoneSettings({ uri: selectedRingtone, host: localConfig.host });
+            IncomingCall.saveChatSettings({ uri: selectedChatRingtone });
         }, 1000);
         return () => clearTimeout(timer);
-    }, [localConfig, selectedRingtone, setConfig]);
+    }, [localConfig, selectedRingtone, selectedChatRingtone, setConfig]);
 
     if (view === 'contacts') {
         return <ContactsView onBack={() => setView('main')} />;
