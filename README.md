@@ -104,6 +104,93 @@ npx cap open android
 
 ---
 
+## 🌐 MQTTブローカーのセットアップ
+
+SmartBellはMQTTプロトコルを使用してリアルタイム通信を行います。**Mosquitto**（Eclipse Mosquitto）は軽量で高速なオープンソースのMQTTブローカーとして最も広く利用されており、本アプリでの使用を推奨します。
+
+### Mosquittoのインストール
+
+#### Windows
+
+```bash
+# wingetを使用
+winget install EclipseFoundation.Mosquitto
+
+# またはScoopを使用
+scoop install mosquitto
+```
+
+#### Linux (Ubuntu/Debian)
+
+```bash
+sudo apt update
+sudo apt install mosquitto mosquitto-clients
+sudo systemctl enable mosquitto
+sudo systemctl start mosquitto
+```
+
+#### macOS
+
+```bash
+brew install mosquitto
+brew services start mosquitto
+```
+
+#### Docker
+
+```bash
+docker run -d --name mosquitto -p 1883:1883 -p 9001:9001 eclipse-mosquitto
+```
+
+### 設定例 (`mosquitto.conf`)
+
+SmartBellはWebSocket経由でMQTTに接続します。以下の設定をMosquittoの設定ファイルに追加してください：
+
+```conf
+# 基本設定
+listener 1883
+protocol mqtt
+
+# WebSocket用リスナー（SmartBellはこちらを使用）
+listener 9001
+protocol websockets
+
+# 認証なし（開発・家庭内LAN用）
+allow_anonymous true
+
+# ログ設定
+log_dest stdout
+log_type all
+```
+
+> **💡 ヒント**: 設定ファイルの場所
+> - **Windows**: `C:\Program Files\mosquitto\mosquitto.conf`
+> - **Linux**: `/etc/mosquitto/mosquitto.conf`
+> - **macOS (Homebrew)**: `/opt/homebrew/etc/mosquitto/mosquitto.conf`
+
+### アプリでの接続設定
+
+| 設定項目 | 値の例 |
+|----------|--------|
+| **ホスト** | `192.168.1.100`（ブローカーのIPアドレス） |
+| **ポート** | `9001`（WebSocketポート） |
+
+> **⚠️ 注意**: ポートには**WebSocket用のポート（9001）**を指定してください。標準MQTTポート（1883）ではなく、WebSocketリスナーのポートを使用します。
+
+### 動作確認
+
+Mosquittoが正しく動作しているか確認するには、以下のコマンドを使用します：
+
+```bash
+# 別のターミナルでサブスクライブ
+mosquitto_sub -h localhost -t "smartbell/#" -v
+
+# メッセージをパブリッシュ
+mosquitto_pub -h localhost -t "smartbell/test" -m "Hello SmartBell!"
+```
+
+---
+
 ## 📄 ライセンス
 
 MIT License
