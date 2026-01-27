@@ -252,6 +252,9 @@ public class MqttForegroundService extends Service {
                 broadcast.putExtra("data", payloadStr);
                 LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
 
+                // Store message for later retrieval by UI (Drain logic)
+                savePendingChatMessage(payloadStr);
+
                 // Show local notification for chat
                 showChatNotification(sender, text);
             }
@@ -284,6 +287,19 @@ public class MqttForegroundService extends Service {
 
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         manager.notify(2, notification);
+    }
+
+    private synchronized void savePendingChatMessage(String payload) {
+        android.content.SharedPreferences prefs = getSharedPreferences("PendingChats", Context.MODE_PRIVATE);
+        String current = prefs.getString("messages", "[]");
+        try {
+            org.json.JSONArray array = new org.json.JSONArray(current);
+            array.put(new JSONObject(payload));
+            prefs.edit().putString("messages", array.toString()).apply();
+            Log.d(TAG, "Chat message stored in SharedPreferences");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to save pending chat", e);
+        }
     }
 
     private void createNotificationChannel() {

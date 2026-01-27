@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { Send, UserPlus, Users, Check } from 'lucide-react';
+import { Send, UserPlus, Users, Check, Trash2 } from 'lucide-react';
 
 interface ChatViewProps {
     sendChat: (text: string, targetId?: string) => boolean;
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({ sendChat }) => {
-    const { chatHistory, isConnected, contacts, addContact } = useApp();
+    const { chatHistory, isConnected, contacts, addContact, clearChatHistory } = useApp();
     const [message, setMessage] = useState('');
     const [targetId, setTargetId] = useState('');
     const [showContactSelector, setShowContactSelector] = useState(false);
@@ -40,6 +40,39 @@ export const ChatView: React.FC<ChatViewProps> = ({ sendChat }) => {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#000', color: '#fff', position: 'relative' }}>
+            {/* Header with Clear Button */}
+            <div style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid #1e293b',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: 'rgba(0,0,0,0.8)',
+                backdropFilter: 'blur(10px)',
+                zIndex: 10
+            }}>
+                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>チャット</h2>
+                {chatHistory.length > 0 && (
+                    <button
+                        onClick={clearChatHistory}
+                        style={{
+                            padding: '8px',
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '13px'
+                        }}
+                    >
+                        <Trash2 size={16} />
+                        履歴を削除
+                    </button>
+                )}
+            </div>
+
             {/* Chat Area - Padding bottom adjusted for floating input */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: '120px', backgroundColor: '#000' }} onClick={() => setShowContactSelector(false)}>
                 {chatHistory.map((msg, i) => {
@@ -147,7 +180,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ sendChat }) => {
             {/* Combined Input & Target Selector Area - Floating above dock */}
             <div style={{
                 position: 'fixed',
-                bottom: '140px', // Lifted slightly more
+                bottom: '140px',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 width: 'calc(100% - 32px)',

@@ -273,4 +273,23 @@ public class IncomingCallPlugin extends Plugin {
             call.reject("Contacts data missing");
         }
     }
+
+    @PluginMethod
+    public void getPendingChatMessages(PluginCall call) {
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("PendingChats",
+                android.content.Context.MODE_PRIVATE);
+        String messagesJson = prefs.getString("messages", "[]");
+
+        // Clear after reading
+        prefs.edit().remove("messages").apply();
+
+        try {
+            com.getcapacitor.JSArray array = new com.getcapacitor.JSArray(messagesJson);
+            JSObject ret = new JSObject();
+            ret.put("messages", array);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to parse pending messages", e);
+        }
+    }
 }

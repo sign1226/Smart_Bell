@@ -43,6 +43,7 @@ interface AppState {
   addHistory: (signal: CallSignal) => void;
   chatHistory: ChatMessage[];
   addChatMessage: (msg: ChatMessage) => void;
+  clearChatHistory: () => void;
   contacts: Contact[];
   addContact: (contact: Contact) => void;
   removeContact: (id: string) => void;
@@ -82,7 +83,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isConnected, setIsConnected] = useState(false);
   const [history, setHistory] = useState<CallSignal[]>([]);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>(() => {
+    const saved = localStorage.getItem('bell_chat_history');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [contacts, setContacts] = useState<Contact[]>(() => {
     const saved = localStorage.getItem('bell_contacts');
     return saved ? JSON.parse(saved) : [];
@@ -105,12 +109,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     IncomingCall.syncContacts({ contacts: JSON.stringify(contacts) }).catch(console.error);
   }, [contacts]);
 
-  const addHistory = useCallback((signal: CallSignal) => {
-    setHistory(prev => [signal, ...prev].slice(0, 50));
-  }, []);
+  useEffect(() => {
+    localStorage.setItem('bell_chat_history', JSON.stringify(chatHistory));
+  }, [chatHistory]);
 
   const addChatMessage = useCallback((msg: ChatMessage) => {
-    setChatHistory(prev => [...prev, msg].slice(-100)); // Keep last 100 messages
+    setChatHistory(prev => {
+      // Duplicate prevention
+      if (prev.some(m => m.id === msg.id)) return prev;
+      return [...prev, msg].slice(-200);
+    });
+  }, []);
+
+  const clearChatHistory = useCallback(() => {
+    if (window.confirm('チャット履歴をすべて削除しますか？')) {
+      setChatHistory([]);
+      localStorage.removeItem('bell_chat_history');
+    }
+  }, []);
+
+  // Sync background messages from Native on startup and periodically
+  useEffect(() => {
+    const syncPendingMessages = async () => {
+      try {
+        const { messages } = await IncomingCall.getPendingChatMessages();
+        if (messages && messages.length > 0) {
+          console.log(`Synced ${messages.length} messages from Native storage`);
+          messages.forEach(msgPayload => {
+            const msg: ChatMessage = {
+              id: msgPayload.id || crypto.randomUUID(),
+              from: msgPayload.from || '誰か',
+              fromId: msgPayload.fromId || '',
+              text: msgPayload.text || '',
+              timestamp: msgPayload.timestamp || Date.now(),
+              isSelf: false
+            };
+            addChatMessage(msg);
+          });
+        }
+      } catch (e) {
+        console.error('Failed to sync pending messages:', e);
+      }
+    };
+
+    // Initial sync
+    syncPendingMessages();
+
+    // Check periodically if app is in foreground
+    const interval = setInterval(syncPendingMessages, 5000);
+    return () => clearInterval(interval);
+  }, [addChatMessage]);
+
+  const addHistory = useCallback((signal: CallSignal) => {
+    setHistory(prev => [signal, ...prev].slice(0, 50));
   }, []);
 
   const addContact = useCallback((contact: Contact) => {
@@ -132,7 +183,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       deviceId,
       isConnected, setIsConnected: useCallback((connected: boolean) => setIsConnected(connected), []),
       history, addHistory,
-      chatHistory, addChatMessage,
+      chatHistory, addChatMessage, clearChatHistory,
       contacts, addContact, removeContact,
       isRinging, setIsRinging: useCallback((ringing: boolean) => setIsRinging(ringing), []),
       isRemoteOnline, setIsRemoteOnline: useCallback((online: boolean) => setIsRemoteOnline(online), []),

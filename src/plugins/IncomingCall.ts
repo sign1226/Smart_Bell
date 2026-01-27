@@ -20,6 +20,7 @@ export interface IncomingCallPlugin {
         deviceId: string
     }): Promise<void>;
     stopService(): Promise<void>;
+    getPendingChatMessages(): Promise<{ messages: any[] }>;
 }
 
 const IncomingCall = registerPlugin<IncomingCallPlugin>('IncomingCall');
