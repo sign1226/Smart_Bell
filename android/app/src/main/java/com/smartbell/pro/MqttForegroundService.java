@@ -297,19 +297,30 @@ public class MqttForegroundService extends Service {
         PendingIntent pendingIntent = PendingIntent.getActivity(this,
                 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
-        Notification notification = new NotificationCompat.Builder(this, currentChatChannelId)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, currentChatChannelId)
                 .setContentTitle(sender + " からのメッセージ")
                 .setContentText(text)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setDefaults(NotificationCompat.DEFAULT_VIBRATE | NotificationCompat.DEFAULT_LIGHTS)
-                .setFullScreenIntent(pendingIntent, true) // Force heads-up
-                .build();
+                .setFullScreenIntent(pendingIntent, true);
+
+        if (chatUri == null || chatUri.isEmpty()) {
+            // システムデフォルト音を設定
+            builder.setSound(
+                    android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION));
+            // 全てのデフォルト（音・振動・ライト）を有効化
+            builder.setDefaults(NotificationCompat.DEFAULT_ALL);
+        } else {
+            // カスタム音を設定
+            builder.setSound(Uri.parse(chatUri));
+            // 振動とライトはデフォルトを使用（音は明示的に設定済み）
+            builder.setDefaults(NotificationCompat.DEFAULT_VIBRATE | NotificationCompat.DEFAULT_LIGHTS);
+        }
 
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        manager.notify(2, notification);
+        manager.notify(2, builder.build());
     }
 
     private void createChatNotificationChannel(String soundUri) {

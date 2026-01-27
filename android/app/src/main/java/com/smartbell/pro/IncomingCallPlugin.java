@@ -216,8 +216,10 @@ public class IncomingCallPlugin extends Plugin {
         String uri = call.getString("uri");
         android.content.SharedPreferences.Editor editor = getContext()
                 .getSharedPreferences("com.smartbell.pro.settings", android.content.Context.MODE_PRIVATE).edit();
-        if (uri != null) {
+        if (uri != null && !uri.isEmpty()) {
             editor.putString("chat_ringtone_uri", uri);
+        } else {
+            editor.remove("chat_ringtone_uri");
         }
         editor.apply();
         call.resolve();
