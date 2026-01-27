@@ -12,6 +12,7 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
+@SuppressWarnings("unchecked")
 public class CallReceiver extends BroadcastReceiver {
 
     public static final String ACTION_SHOW_CALL = "com.smartbell.pro.SHOW_CALL";

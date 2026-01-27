@@ -25,7 +25,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import org.json.JSONObject;
 
-@SuppressWarnings("deprecation")
+@SuppressWarnings({ "deprecation", "unchecked" })
 public class MqttForegroundService extends Service {
     private static final String TAG = "MqttService";
     private static final String CHANNEL_ID = "MqttServiceChannel";
