@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Bell, UserCircle } from 'lucide-react';
+import { Bell, UserCircle, Users } from 'lucide-react';
 import IncomingCall from '../plugins/IncomingCall';
 import { ContactsView } from './ContactsView';
 
