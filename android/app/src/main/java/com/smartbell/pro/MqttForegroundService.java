@@ -85,15 +85,12 @@ public class MqttForegroundService extends Service {
             } else if ("com.smartbell.pro.ACTION_TRIGGER_CALL".equals(action)) {
                 // ウィジェットからの呼び出し - 既存のMQTT接続を使用してメッセージを送信
                 if (mqttClient != null && mqttClient.isConnected()) {
-                    triggerCall(intent);
+                    triggerCall(intent, false); // No initial toast for widget
                 } else {
                     Log.d(TAG, "MQTT client not connected, queuing intent and connecting...");
                     pendingCallIntent = intent;
                     connectMqtt();
-                    // Feedback to user - Only show "Preparing" if we are really disconnected
-                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-                    mainHandler.post(() -> android.widget.Toast
-                            .makeText(this, "接続中...", android.widget.Toast.LENGTH_SHORT).show());
+                    // Keep quiet for widget triggers unless it takes too long
                 }
                 // 注意: stopSelf()を削除 - サービスを継続して実行
             } else if (ACTION_STOP.equals(action)) {
@@ -174,7 +171,7 @@ public class MqttForegroundService extends Service {
                     publishOnlineStatus();
                     subscribeAll();
                     if (pendingCallIntent != null) {
-                        triggerCall(pendingCallIntent);
+                        triggerCall(pendingCallIntent, false); // Silent for widget retry
                         pendingCallIntent = null;
                     }
                 }
@@ -191,12 +188,13 @@ public class MqttForegroundService extends Service {
         }
     }
 
-    private void triggerCall(Intent intent) {
+    private void triggerCall(Intent intent, boolean showCallingToast) {
         String targetId = intent.getStringExtra("targetId");
         String targetName = intent.getStringExtra("targetName");
         if (targetName == null)
             targetName = "全員";
-        Log.d(TAG, "Triggering call to target: " + (targetId != null ? targetId : "全員"));
+        Log.d(TAG, "Triggering call to target (silent=" + !showCallingToast + "): "
+                + (targetId != null ? targetId : "全員"));
 
         JSONObject payload = new JSONObject();
         try {
@@ -209,14 +207,17 @@ public class MqttForegroundService extends Service {
                 mqttClient.publish(topic, payload.toString().getBytes(), 1, false);
             }
             Log.d(TAG, "Call publish initiated.");
-            // Immediate Feedback: Calling...
-            android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-            final String finalTargetName = targetName;
-            mainHandler.post(() -> {
-                android.widget.Toast.makeText(getApplicationContext(),
-                        (targetId != null ? finalTargetName : "全員") + " へ呼出中...", android.widget.Toast.LENGTH_SHORT)
-                        .show();
-            });
+
+            if (showCallingToast) {
+                // Immediate Feedback: Calling...
+                android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                final String finalTargetName = targetName;
+                mainHandler.post(() -> {
+                    android.widget.Toast.makeText(getApplicationContext(),
+                            (targetId != null ? finalTargetName : "全員") + " へ呼出中...", android.widget.Toast.LENGTH_SHORT)
+                            .show();
+                });
+            }
         } catch (Exception e) {
             Log.e(TAG, "Failed to send call", e);
         }
