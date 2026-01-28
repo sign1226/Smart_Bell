@@ -193,7 +193,19 @@ public class MqttForegroundService extends Service {
             options.setConnectionTimeout(60);
             options.setKeepAliveInterval(60); // 1 minute keepalive for mobile
 
+            // LWT (Last Will and Testament)
+            if (deviceId != null && !deviceId.isEmpty()) {
+                String presenceTopic = "smartbell/presence/" + deviceId + "/android";
+                options.setWill(presenceTopic, "offline".getBytes(), 1, true);
+            }
+
             mqttClient.connect(options);
+
+            // Publish Online Status (Retained)
+            if (deviceId != null && !deviceId.isEmpty()) {
+                String presenceTopic = "smartbell/presence/" + deviceId + "/android";
+                mqttClient.publish(presenceTopic, "online".getBytes(), 1, true);
+            }
 
             // Subscribe to global topic
             if (topic != null) {
@@ -233,6 +245,26 @@ public class MqttForegroundService extends Service {
 
             if ("call".equals(cmd)) {
                 String caller = payload.optString("from", "呼び出し中");
+                String callerId = payload.optString("fromId", "");
+
+                // Skip if from self
+                if (callerId.equals(deviceId))
+                    return;
+
+                // Send Ack back
+                if (mqttClient != null && mqttClient.isConnected() && !callerId.isEmpty()) {
+                    try {
+                        JSONObject ackPayload = new JSONObject();
+                        ackPayload.put("cmd", "ack");
+                        ackPayload.put("forCmd", "call");
+                        ackPayload.put("from", clientId);
+                        ackPayload.put("fromId", deviceId);
+                        ackPayload.put("timestamp", System.currentTimeMillis());
+                        mqttClient.publish("smartbell/call/" + callerId, ackPayload.toString().getBytes(), 1, false);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to send ack", e);
+                    }
+                }
 
                 // Launch Activity
                 Intent intent = new Intent(this, IncomingCallActivity.class);
@@ -245,6 +277,12 @@ public class MqttForegroundService extends Service {
                 Intent broadcast = new Intent("com.smartbell.pro.SHOW_CALL");
                 broadcast.putExtra("data", payloadStr);
                 LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
+            } else if ("ack".equals(cmd)) {
+                String forCmd = payload.optString("forCmd");
+                if ("call".equals(forCmd)) {
+                    String fromName = payload.optString("from", "相手");
+                    showCallDeliveredNotification(fromName);
+                }
             } else if ("chat".equals(cmd)) {
                 String sender = payload.optString("from", "誰か");
                 String text = payload.optString("text", "メッセージが届きました");
@@ -270,6 +308,26 @@ public class MqttForegroundService extends Service {
 
         } catch (Exception e) {
             Log.e(TAG, "JSON Parse error", e);
+        }
+    }
+
+    private void showCallDeliveredNotification(String targetName) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            // Reuse service channel or create a new high priority one for feedback
+            // Using service channel for now but with higher visibility if possible, or just
+            // a toast?
+            // Background service can't show Toast easily on Android 12+.
+            // Notification is better.
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle("呼び出し完了")
+                    .setContentText(targetName + " に呼び出しが届きました")
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setAutoCancel(true);
+
+            manager.notify(3, builder.build()); // ID 3 for ack notifications
         }
     }
 

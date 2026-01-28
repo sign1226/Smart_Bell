@@ -8,9 +8,9 @@ interface SenderViewProps {
 }
 
 export const SenderView: React.FC<SenderViewProps> = ({ sendCall }) => {
-    const { isConnected, connectionError, config, contacts, defaultRecipientId } = useApp();
+    const { isConnected, connectionError, config, contacts, defaultRecipientId, callStatus, setCallStatus } = useApp();
     const [cooldown, setCooldown] = useState(0);
-    const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    // const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle'); // Use context callStatus
     const [targetId, setTargetId] = useState(defaultRecipientId || '');
     const [showContactSelector, setShowContactSelector] = useState(false);
 
@@ -26,12 +26,16 @@ export const SenderView: React.FC<SenderViewProps> = ({ sendCall }) => {
 
         const success = sendCall(targetId);
         if (success) {
-            setStatus('success');
-            setCooldown(3);
-            setTimeout(() => setStatus('idle'), 3000);
+            setCallStatus('sending');
+            setCooldown(5);
+            // Reset status after a while if no ack
+            setTimeout(() => {
+                setCallStatus(prev => prev === 'delivered' ? 'idle' : 'failed'); // Just idle if no ack or done
+                setTimeout(() => setCallStatus('idle'), 2000);
+            }, 5000);
         } else {
-            setStatus('error');
-            setTimeout(() => setStatus('idle'), 3000);
+            setCallStatus('failed');
+            setTimeout(() => setCallStatus('idle'), 3000);
         }
     };
 
@@ -149,14 +153,36 @@ export const SenderView: React.FC<SenderViewProps> = ({ sendCall }) => {
                 </div>
 
                 <AnimatePresence mode="wait">
-                    {status === 'success' && (
+                    {callStatus === 'sending' && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            style={{ position: 'absolute', top: '35%', backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', padding: '8px 20px', borderRadius: '999px', fontSize: '1rem', fontWeight: 'bold', border: '1px solid rgba(59, 130, 246, 0.3)' }}
+                        >
+                            呼び出し中...
+                        </motion.div>
+                    )}
+                    {callStatus === 'delivered' && (
                         <motion.div
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0 }}
                             style={{ position: 'absolute', top: '35%', backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '8px 20px', borderRadius: '999px', fontSize: '1rem', fontWeight: 'bold', border: '1px solid rgba(34, 197, 94, 0.3)' }}
                         >
-                            送信完了！
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Check size={18} /> 相手に着信中
+                            </span>
+                        </motion.div>
+                    )}
+                    {callStatus === 'failed' && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            style={{ position: 'absolute', top: '35%', backgroundColor: 'rgba(239, 68, 68, 0.2)', color: '#f87171', padding: '8px 20px', borderRadius: '999px', fontSize: '1rem', fontWeight: 'bold', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+                        >
+                            送信失敗
                         </motion.div>
                     )}
                 </AnimatePresence>

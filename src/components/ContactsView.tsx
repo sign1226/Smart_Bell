@@ -7,7 +7,7 @@ interface ContactsViewProps {
 }
 
 export const ContactsView: React.FC<ContactsViewProps> = ({ onBack }) => {
-    const { contacts, addContact, removeContact } = useApp();
+    const { contacts, addContact, removeContact, onlineStatuses } = useApp();
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({ id: '', name: '' });
@@ -144,12 +144,25 @@ export const ContactsView: React.FC<ContactsViewProps> = ({ onBack }) => {
                     ) : (
                         contacts.map(contact => (
                             <div key={contact.id} style={{ backgroundColor: '#111', border: '1px solid #1f2937', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(30, 58, 138, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa', fontWeight: 'bold' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(30, 58, 138, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa', fontWeight: 'bold', position: 'relative' }}>
                                     {contact.name[0].toUpperCase()}
+                                    <div style={{
+                                        position: 'absolute',
+                                        bottom: 0,
+                                        right: 0,
+                                        width: '12px',
+                                        height: '12px',
+                                        borderRadius: '50%',
+                                        backgroundColor: onlineStatuses.get(contact.id) ? '#22c55e' : '#9ca3af',
+                                        border: '2px solid #111'
+                                    }} />
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.name}</div>
-                                    <div style={{ fontSize: '10px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{contact.id}</div>
+                                    <div style={{ fontSize: '10px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {contact.id}
+                                        {onlineStatuses.get(contact.id) && <span style={{ marginLeft: '8px', color: '#22c55e' }}>Online</span>}
+                                    </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '4px' }}>
                                     <button
