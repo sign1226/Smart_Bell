@@ -90,10 +90,10 @@ public class MqttForegroundService extends Service {
                     Log.d(TAG, "MQTT client not connected, queuing intent and connecting...");
                     pendingCallIntent = intent;
                     connectMqtt();
-                    // Feedback to user
+                    // Feedback to user - Only show "Preparing" if we are really disconnected
                     android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
                     mainHandler.post(() -> android.widget.Toast
-                            .makeText(this, "準備中...", android.widget.Toast.LENGTH_SHORT).show());
+                            .makeText(this, "接続中...", android.widget.Toast.LENGTH_SHORT).show());
                 }
                 // 注意: stopSelf()を削除 - サービスを継続して実行
             } else if (ACTION_STOP.equals(action)) {
@@ -224,22 +224,19 @@ public class MqttForegroundService extends Service {
             payload.put("from", clientId != null ? clientId : "デバイス");
             payload.put("fromId", deviceId);
             if (targetId != null && !targetId.isEmpty()) {
-                org.eclipse.paho.client.mqttv3.IMqttDeliveryToken token = mqttClient
-                        .publish("smartbell/call/" + targetId, payload.toString().getBytes(), 1, false);
-                deliveryTargets.put(token.getMessageId(), targetName);
+                mqttClient.publish("smartbell/call/" + targetId, payload.toString().getBytes(), 1, false);
             } else {
-                org.eclipse.paho.client.mqttv3.IMqttDeliveryToken token = mqttClient.publish(topic,
-                        payload.toString().getBytes(), 1, false);
-                deliveryTargets.put(token.getMessageId(), "全員");
+                mqttClient.publish(topic, payload.toString().getBytes(), 1, false);
             }
             Log.d(TAG, "Call publish initiated.");
             // Immediate Feedback: Calling...
             android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
             final String finalTargetName = targetName;
-            mainHandler.post(() -> android.widget.Toast
-                    .makeText(this, (targetId != null ? finalTargetName : "全員") + " へ呼出中...",
-                            android.widget.Toast.LENGTH_SHORT)
-                    .show());
+            mainHandler.post(() -> {
+                android.widget.Toast.makeText(getApplicationContext(),
+                        (targetId != null ? finalTargetName : "全員") + " へ呼出中...", android.widget.Toast.LENGTH_SHORT)
+                        .show();
+            });
         } catch (Exception e) {
             Log.e(TAG, "Failed to send call", e);
         }
