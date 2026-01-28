@@ -84,6 +84,9 @@ public class MqttForegroundService extends Service {
                 // ウィジェットからの呼び出し - 既存のMQTT接続を使用してメッセージを送信
                 if (mqttClient != null && mqttClient.isConnected()) {
                     String targetId = intent.getStringExtra("targetId");
+                    String targetName = intent.getStringExtra("targetName");
+                    if (targetName == null)
+                        targetName = "全員";
                     Log.d(TAG, "Triggering call from service to target: " + (targetId != null ? targetId : "全員"));
 
                     JSONObject payload = new JSONObject();
@@ -97,14 +100,20 @@ public class MqttForegroundService extends Service {
                             mqttClient.publish(topic, payload.toString().getBytes(), 1, false);
                         }
                         Log.d(TAG, "Call triggered successfully.");
+                        // Feedback to user
+                        android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                        mainHandler.post(() -> android.widget.Toast.makeText(this,
+                                (targetId != null ? targetName : "全員") + " へ送信しました", android.widget.Toast.LENGTH_SHORT)
+                                .show());
                     } catch (Exception e) {
                         Log.e(TAG, "Failed to send call from intent", e);
                     }
                 } else {
                     Log.e(TAG, "MQTT client not connected, cannot trigger call.");
                     // ユーザーに接続されていないことを通知
-                    android.widget.Toast.makeText(this, "MQTTに接続されていません。アプリを開いてください。", android.widget.Toast.LENGTH_LONG)
-                            .show();
+                    android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                    mainHandler.post(() -> android.widget.Toast
+                            .makeText(this, "接続エラー: アプリを開いて再試行してください", android.widget.Toast.LENGTH_LONG).show());
                 }
                 // 注意: stopSelf()を削除 - サービスを継続して実行
             } else if (ACTION_STOP.equals(action)) {
@@ -169,9 +178,6 @@ public class MqttForegroundService extends Service {
                 @Override
                 public void connectionLost(Throwable cause) {
                     Log.e(TAG, "Connection lost", cause);
-                    // Reconnect logic could go here, but Paho has automatic reconnect options
-                    // usually?
-                    // Or we just try to reconnect after a delay.
                 }
 
                 @Override
@@ -183,15 +189,14 @@ public class MqttForegroundService extends Service {
 
                 @Override
                 public void deliveryComplete(IMqttDeliveryToken token) {
-                    // Not needed for subscriber
                 }
             });
 
             MqttConnectOptions options = new MqttConnectOptions();
             options.setAutomaticReconnect(true);
-            options.setCleanSession(false); // Changed to false for better persistence
+            options.setCleanSession(false);
             options.setConnectionTimeout(60);
-            options.setKeepAliveInterval(60); // 1 minute keepalive for mobile
+            options.setKeepAliveInterval(60);
 
             // LWT (Last Will and Testament)
             if (deviceId != null && !deviceId.isEmpty()) {
@@ -199,28 +204,49 @@ public class MqttForegroundService extends Service {
                 options.setWill(presenceTopic, "offline".getBytes(), 1, true);
             }
 
-            mqttClient.connect(options);
+            mqttClient.connect(options, null, new org.eclipse.paho.client.mqttv3.IMqttActionListener() {
+                @Override
+                public void onSuccess(org.eclipse.paho.client.mqttv3.IMqttToken asyncActionToken) {
+                    Log.d(TAG, "MQTT Connected successfully");
+                    publishOnlineStatus();
+                    subscribeAll();
+                }
 
-            // Publish Online Status (Retained)
-            if (deviceId != null && !deviceId.isEmpty()) {
+                @Override
+                public void onFailure(org.eclipse.paho.client.mqttv3.IMqttToken asyncActionToken, Throwable exception) {
+                    Log.e(TAG, "MQTT Connect Failed", exception);
+                }
+            });
+
+        } catch (MqttException e) {
+            Log.e(TAG, "MQTT Connect Error", e);
+        }
+    }
+
+    private void publishOnlineStatus() {
+        if (mqttClient != null && mqttClient.isConnected() && deviceId != null && !deviceId.isEmpty()) {
+            try {
                 String presenceTopic = "smartbell/presence/" + deviceId + "/android";
                 mqttClient.publish(presenceTopic, "online".getBytes(), 1, true);
+                Log.d(TAG, "Published Online Status");
+            } catch (MqttException e) {
+                Log.e(TAG, "Failed to publish online status", e);
             }
+        }
+    }
 
-            // Subscribe to global topic
-            if (topic != null) {
-                mqttClient.subscribe(topic);
+    private void subscribeAll() {
+        try {
+            if (mqttClient != null && mqttClient.isConnected()) {
+                if (topic != null)
+                    mqttClient.subscribe(topic);
+                if (deviceId != null && !deviceId.isEmpty()) {
+                    mqttClient.subscribe("smartbell/call/" + deviceId);
+                    mqttClient.subscribe("smartbell/chat/" + deviceId);
+                    mqttClient.subscribe("smartbell/chat/all");
+                }
+                Log.d(TAG, "Subscribed to all topics");
             }
-
-            // Subscribe to device specific topic if available
-            if (deviceId != null && !deviceId.isEmpty()) {
-                mqttClient.subscribe("smartbell/call/" + deviceId);
-                mqttClient.subscribe("smartbell/chat/" + deviceId);
-                mqttClient.subscribe("smartbell/chat/all");
-            }
-
-            Log.d(TAG, "MQTT Connected");
-
         } catch (MqttException e) {
             Log.e(TAG, "MQTT Connect Error", e);
         }

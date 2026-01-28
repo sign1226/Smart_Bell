@@ -71,6 +71,7 @@ public class CallWidget extends AppWidgetProvider {
         Intent intent = new Intent(context, MqttForegroundService.class);
         intent.setAction("com.smartbell.pro.ACTION_TRIGGER_CALL");
         intent.putExtra("targetId", targetId);
+        intent.putExtra("targetName", targetName);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             context.startForegroundService(intent);
