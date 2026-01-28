@@ -29,6 +29,7 @@ export interface ChatMessage {
   text: string;
   timestamp: number;
   isSelf: boolean;
+  isDelivered?: boolean;
 }
 
 interface AppState {
@@ -43,6 +44,7 @@ interface AppState {
   addHistory: (signal: CallSignal) => void;
   chatHistory: ChatMessage[];
   addChatMessage: (msg: ChatMessage) => void;
+  updateChatMessage: (id: string, updates: Partial<ChatMessage>) => void;
   clearChatHistory: () => void;
   contacts: Contact[];
   addContact: (contact: Contact) => void;
@@ -136,6 +138,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, []);
 
+  const updateChatMessage = useCallback((id: string, updates: Partial<ChatMessage>) => {
+    setChatHistory(prev => prev.map(msg => msg.id === id ? { ...msg, ...updates } : msg));
+  }, []);
+
   const clearChatHistory = useCallback(() => {
     if (window.confirm('チャット履歴をすべて削除しますか？')) {
       setChatHistory([]);
@@ -198,7 +204,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       deviceId,
       isConnected, setIsConnected: useCallback((connected: boolean) => setIsConnected(connected), []),
       history, addHistory,
-      chatHistory, addChatMessage, clearChatHistory,
+      chatHistory, addChatMessage, updateChatMessage, clearChatHistory,
       contacts, addContact, removeContact,
       isRinging, setIsRinging: useCallback((ringing: boolean) => setIsRinging(ringing), []),
       isRemoteOnline, setIsRemoteOnline: useCallback((online: boolean) => setIsRemoteOnline(online), []),

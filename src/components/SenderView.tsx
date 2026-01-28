@@ -8,7 +8,7 @@ interface SenderViewProps {
 }
 
 export const SenderView: React.FC<SenderViewProps> = ({ sendCall }) => {
-    const { isConnected, connectionError, config, contacts, defaultRecipientId, callStatus, setCallStatus } = useApp();
+    const { isConnected, connectionError, config, contacts, defaultRecipientId, callStatus, setCallStatus, onlineStatuses } = useApp();
     const [cooldown, setCooldown] = useState(0);
     // const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle'); // Use context callStatus
     const [targetId, setTargetId] = useState(defaultRecipientId || '');
@@ -47,11 +47,11 @@ export const SenderView: React.FC<SenderViewProps> = ({ sendCall }) => {
     return (
         <div style={{ height: '100%' }} onClick={() => setShowContactSelector(false)}>
             <main style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative', height: '100%' }}>
-                {/* 接続ステータスを上部中央に配置 */}
-                <div style={{ position: 'absolute', top: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', width: '100%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        {isConnected ? <Wifi size={16} color="var(--success-color)" /> : <WifiOff size={16} color="var(--danger-color)" />}
-                        <span style={{ fontSize: '0.8rem', color: isConnected ? 'var(--success-color)' : 'var(--danger-color)' }}>
+                {/* 接続ステータスを上部に配置 (セーフエリア考慮) */}
+                <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', width: '100%', zIndex: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'rgba(0,0,0,0.4)', padding: '4px 12px', borderRadius: '12px', backdropFilter: 'blur(4px)' }}>
+                        {isConnected ? <Wifi size={14} color="var(--success-color)" /> : <WifiOff size={14} color="var(--danger-color)" />}
+                        <span style={{ fontSize: '0.75rem', color: isConnected ? 'var(--success-color)' : 'var(--danger-color)', fontWeight: '500' }}>
                             {isConnected ? '接続済み' : 'オフライン'}
                         </span>
                     </div>
@@ -83,10 +83,18 @@ export const SenderView: React.FC<SenderViewProps> = ({ sendCall }) => {
                         }}
                     >
                         <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{ padding: '6px', backgroundColor: 'rgba(59, 130, 246, 0.2)', borderRadius: '8px', display: 'flex' }}>
+                            <div style={{ padding: '6px', backgroundColor: 'rgba(59, 130, 246, 0.2)', borderRadius: '8px', display: 'flex', position: 'relative' }}>
                                 <Users size={16} color="#3b82f6" />
+                                {targetId && onlineStatuses.get(targetId) && (
+                                    <div style={{ position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderRadius: '50%', backgroundColor: '#22c55e', border: '1.5px solid #1e293b' }} />
+                                )}
                             </div>
-                            {targetId ? getDisplayName(targetId) : '全員 (一斉呼出)'}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {targetId ? getDisplayName(targetId) : '全員 (一斉呼出)'}
+                                {targetId && onlineStatuses.get(targetId) && (
+                                    <span style={{ fontSize: '10px', color: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.1)', padding: '1px 6px', borderRadius: '4px' }}>Online</span>
+                                )}
+                            </div>
                         </span>
                         <ChevronDown size={18} style={{ opacity: 0.5 }} />
                     </button>
@@ -141,10 +149,12 @@ export const SenderView: React.FC<SenderViewProps> = ({ sendCall }) => {
                                         gap: '12px'
                                     }}
                                 >
-                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
+                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold', position: 'relative' }}>
                                         {contact.name[0].toUpperCase()}
+                                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 7, height: 7, borderRadius: '50%', backgroundColor: onlineStatuses.get(contact.id) ? '#22c55e' : '#9ca3af', border: '1px solid #1e293b' }} />
                                     </div>
                                     <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.name}</span>
+                                    {onlineStatuses.get(contact.id) && <span style={{ fontSize: '9px', color: '#22c55e', marginRight: '8px' }}>Online</span>}
                                     {targetId === contact.id && <Check size={14} style={{ marginLeft: 'auto', color: '#3b82f6' }} />}
                                 </button>
                             ))}

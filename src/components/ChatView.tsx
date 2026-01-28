@@ -7,7 +7,7 @@ interface ChatViewProps {
 }
 
 export const ChatView: React.FC<ChatViewProps> = ({ sendChat }) => {
-    const { chatHistory, isConnected, contacts, addContact, clearChatHistory, defaultRecipientId } = useApp();
+    const { chatHistory, isConnected, contacts, addContact, clearChatHistory, defaultRecipientId, onlineStatuses } = useApp();
     const [message, setMessage] = useState('');
     const [targetId, setTargetId] = useState(defaultRecipientId || '');
     const [showContactSelector, setShowContactSelector] = useState(false);
@@ -160,15 +160,21 @@ export const ChatView: React.FC<ChatViewProps> = ({ sendChat }) => {
                                     }}>
                                         {msg.text}
                                     </div>
-                                    <span style={{
-                                        fontSize: '10px',
-                                        color: '#6b7280',
-                                        paddingLeft: '4px',
-                                        marginTop: '4px',
-                                        fontWeight: 500
-                                    }}>
-                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                                        <span style={{
+                                            fontSize: '10px',
+                                            color: '#6b7280',
+                                            fontWeight: 500
+                                        }}>
+                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                        {msg.isSelf && (
+                                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                <Check size={12} color={msg.isDelivered ? "#3b82f6" : "#4b5563"} strokeWidth={3} />
+                                                {msg.isDelivered && <Check size={12} color="#3b82f6" strokeWidth={3} style={{ marginLeft: '-8px' }} />}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -262,10 +268,12 @@ export const ChatView: React.FC<ChatViewProps> = ({ sendChat }) => {
                                         gap: '12px'
                                     }}
                                 >
-                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
+                                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold', position: 'relative' }}>
                                         {contact.name[0].toUpperCase()}
+                                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 6, height: 6, borderRadius: '50%', backgroundColor: onlineStatuses.get(contact.id) ? '#22c55e' : '#9ca3af', border: '1px solid #1e293b' }} />
                                     </div>
-                                    <span style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.name}</span>
+                                    <span style={{ fontSize: '14px', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.name}</span>
+                                    {onlineStatuses.get(contact.id) && <span style={{ fontSize: '9px', color: '#22c55e', marginRight: '4px' }}>Online</span>}
                                     {targetId === contact.id && <Check size={14} style={{ marginLeft: 'auto', color: '#3b82f6' }} />}
                                 </button>
                             ))}

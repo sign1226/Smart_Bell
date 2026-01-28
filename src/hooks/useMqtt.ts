@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import { KeepAwake } from '@capacitor-community/keep-awake';
 
 export const useMqtt = () => {
-    const { config, deviceId, setIsConnected, addHistory, addChatMessage, setIsRinging, mode, setIsRemoteOnline, setConnectionError, setOnlineStatuses, setCallStatus } = useApp();
+    const { config, deviceId, setIsConnected, addHistory, addChatMessage, updateChatMessage, setIsRinging, mode, setIsRemoteOnline, setConnectionError, setOnlineStatuses, setCallStatus } = useApp();
     const clientRef = useRef<MqttClient | null>(null);
 
     const connect = useCallback(() => {
@@ -138,8 +138,11 @@ export const useMqtt = () => {
                             KeepAwake.keepAwake();
                         } else if (payload.cmd === 'ack') {
                             if (payload.forCmd === 'call') {
-                                console.log("Ack received from", payload.from);
+                                console.log("Call Ack received from", payload.from);
                                 setCallStatus('delivered');
+                            } else if (payload.forCmd === 'chat' && payload.msgId) {
+                                console.log("Chat Ack received for", payload.msgId);
+                                updateChatMessage(payload.msgId, { isDelivered: true });
                             }
                         }
                     } else if (topic.startsWith('smartbell/chat/')) {
@@ -147,14 +150,34 @@ export const useMqtt = () => {
                             // 自分自身からの送信は無視
                             if (payload.fromId === deviceId) return;
 
-                            addChatMessage({
-                                id: payload.id || Date.now().toString(),
-                                from: payload.from,
-                                fromId: payload.fromId,
-                                text: payload.text,
-                                timestamp: payload.timestamp,
-                                isSelf: payload.fromId === deviceId
-                            });
+                            const msg = {
+                                id: payload.id || crypto.randomUUID(),
+                                from: payload.from || '誰か',
+                                fromId: payload.fromId || '',
+                                text: payload.text || '',
+                                timestamp: payload.timestamp || Date.now(),
+                                isSelf: false
+                            };
+                            addChatMessage(msg);
+
+                            // Send Ack for chat if targeted to us
+                            if (payload.id && (payload.targetId === deviceId || !payload.targetId)) {
+                                const ackTopic = `smartbell/chat/${payload.fromId}`; // Ack topic for chat
+                                const ackPayload = {
+                                    cmd: 'ack',
+                                    from: config.clientId,
+                                    fromId: deviceId,
+                                    forCmd: 'chat',
+                                    msgId: payload.id,
+                                    timestamp: Date.now()
+                                };
+                                clientRef.current?.publish(ackTopic, JSON.stringify(ackPayload));
+                            }
+                        } else if (payload.cmd === 'ack') {
+                            if (payload.forCmd === 'chat' && payload.msgId) {
+                                console.log("Chat Ack received for", payload.msgId);
+                                updateChatMessage(payload.msgId, { isDelivered: true });
+                            }
                         }
                     } else if (topic === 'smartbell/status') {
                         if (payload.from !== config.clientId) {
@@ -185,7 +208,7 @@ export const useMqtt = () => {
             setIsConnected(false);
             setConnectionError(`例外発生: ${err.message}`);
         }
-    }, [config, deviceId, setIsConnected, addHistory, mode, setIsRinging, setIsRemoteOnline, setConnectionError, setOnlineStatuses, setCallStatus]);
+    }, [config, deviceId, setIsConnected, addHistory, mode, setIsRinging, setIsRemoteOnline, setConnectionError, setOnlineStatuses, setCallStatus, updateChatMessage, addChatMessage]);
 
     const sendCall = useCallback((targetId?: string) => {
         if (clientRef.current && clientRef.current.connected) {
@@ -238,26 +261,28 @@ export const useMqtt = () => {
 
     const sendChat = useCallback((text: string, targetId?: string) => {
         if (clientRef.current && clientRef.current.connected) {
+            const topic = targetId ? `smartbell/chat/${targetId}` : 'smartbell/chat/all';
             const msgId = crypto.randomUUID();
             const payload = {
                 id: msgId,
                 cmd: 'chat',
                 from: config.clientId,
                 fromId: deviceId,
-                text,
+                targetId: targetId,
+                text: text,
                 timestamp: Date.now()
             };
-            const topic = targetId ? `smartbell/chat/${targetId}` : `smartbell/chat/all`;
             clientRef.current.publish(topic, JSON.stringify(payload));
 
-            // Add self message to history
+            // Add to local history immediately
             addChatMessage({
                 id: msgId,
                 from: config.clientId,
                 fromId: deviceId,
-                text,
-                timestamp: Date.now(),
-                isSelf: true
+                text: text,
+                timestamp: payload.timestamp,
+                isSelf: true,
+                isDelivered: false
             });
             return true;
         }
