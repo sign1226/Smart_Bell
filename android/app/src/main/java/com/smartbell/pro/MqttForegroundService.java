@@ -41,6 +41,7 @@ public class MqttForegroundService extends Service {
     private String clientId;
     private String deviceId;
     private android.os.PowerManager.WakeLock wakeLock;
+    private final java.util.Map<Integer, String> deliveryTargets = new java.util.HashMap<>();
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -94,16 +95,21 @@ public class MqttForegroundService extends Service {
                         payload.put("cmd", "call");
                         payload.put("from", clientId != null ? clientId : "デバイス");
                         if (targetId != null && !targetId.isEmpty()) {
-                            payload.put("to", targetId);
-                            mqttClient.publish("smartbell/call/" + targetId, payload.toString().getBytes(), 1, false);
+                            org.eclipse.paho.client.mqttv3.IMqttDeliveryToken token = mqttClient
+                                    .publish("smartbell/call/" + targetId, payload.toString().getBytes(), 1, false);
+                            deliveryTargets.put(token.getMessageId(), targetName);
                         } else {
-                            mqttClient.publish(topic, payload.toString().getBytes(), 1, false);
+                            org.eclipse.paho.client.mqttv3.IMqttDeliveryToken token = mqttClient.publish(topic,
+                                    payload.toString().getBytes(), 1, false);
+                            deliveryTargets.put(token.getMessageId(), "全員");
                         }
-                        Log.d(TAG, "Call triggered successfully.");
-                        // Feedback to user
+                        Log.d(TAG, "Call publish initiated.");
+                        // Immediate Feedback: Sending...
                         android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-                        mainHandler.post(() -> android.widget.Toast.makeText(this,
-                                (targetId != null ? targetName : "全員") + " へ送信しました", android.widget.Toast.LENGTH_SHORT)
+                        final String finalTargetName = targetName;
+                        mainHandler.post(() -> android.widget.Toast
+                                .makeText(this, (targetId != null ? finalTargetName : "全員") + " へ呼出中...",
+                                        android.widget.Toast.LENGTH_SHORT)
                                 .show());
                     } catch (Exception e) {
                         Log.e(TAG, "Failed to send call from intent", e);
@@ -189,6 +195,13 @@ public class MqttForegroundService extends Service {
 
                 @Override
                 public void deliveryComplete(IMqttDeliveryToken token) {
+                    Log.d(TAG, "Delivery complete for msgId: " + token.getMessageId());
+                    String targetName = deliveryTargets.remove(token.getMessageId());
+                    if (targetName != null) {
+                        android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                        mainHandler.post(() -> android.widget.Toast.makeText(MqttForegroundService.this,
+                                targetName + " へ送信しました", android.widget.Toast.LENGTH_SHORT).show());
+                    }
                 }
             });
 
