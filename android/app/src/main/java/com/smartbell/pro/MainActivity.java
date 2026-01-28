@@ -24,16 +24,17 @@ public class MainActivity extends BridgeActivity {
             return;
         String action = intent.getAction();
         if ("com.smartbell.pro.ACTION_WIDGET_CALL".equals(action)) {
-            // JS側にイベントを通知 (Capacitorのブリッジを使用)
-            // ブリッジがロードされるまで少し時間がかかる場合があるため、
-            // 実際にはJS側から ready を受け取ってから送るのが理想的だが、
-            // ここでは簡易的に window オブジェクトにイベントを投げる
-            bridge.getWebView().evaluateJavascript("window.dispatchEvent(new CustomEvent('widgetCall'))", null);
+            String targetId = intent.getStringExtra("targetId");
+            String targetName = intent.getStringExtra("targetName");
+            if (targetId == null)
+                targetId = "";
+            if (targetName == null)
+                targetName = "全員";
 
-            // ユーザーが「アプリに移動したくない」と言っているので
-            // 送信処理が走った直後（あるいは少し待って）にバックグラウンドへ戻す
-            // ここでは即座に。
-            moveTaskToBack(true);
+            String jsFunc = String.format(
+                    "window.dispatchEvent(new CustomEvent('widgetCall', { detail: { targetId: '%s', targetName: '%s' } }))",
+                    targetId, targetName);
+            bridge.getWebView().evaluateJavascript(jsFunc, null);
         } else if ("com.smartbell.pro.ACTION_OPEN_CHAT".equals(action)) {
             bridge.getWebView().evaluateJavascript("window.dispatchEvent(new CustomEvent('openChat'))", null);
         }

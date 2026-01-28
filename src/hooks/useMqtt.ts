@@ -243,15 +243,31 @@ export const useMqtt = () => {
     }, [config.clientId, deviceId]);
 
     useEffect(() => {
-        // Initial setup for LWT (Last Will)
-        // Note: MQTT.js client can set 'will' in connect options.
-        // We need to update the connect options in the connect function above.
-        // But since connect is memoized and we are editing the huge block, 
-        // I will do it in next edit to clean up this block replacement.
+        const handleWidgetCall = (event: any) => {
+            const { targetId } = event.detail || {};
+            console.log('Widget call triggered for:', targetId);
 
+            // Check connection and send
+            if (clientRef.current && clientRef.current.connected) {
+                setCallStatus('sending');
+                const success = sendCall(targetId);
+                if (!success) {
+                    setCallStatus('failed');
+                    setTimeout(() => setCallStatus('idle'), 3000);
+                }
+            } else {
+                setCallStatus('failed');
+                setTimeout(() => setCallStatus('idle'), 3000);
+            }
+        };
+
+        window.addEventListener('widgetCall', handleWidgetCall);
+
+        // Initial setup for LWT (Last Will)
         connect();
         const interval = setInterval(sendHeartbeat, 30000); // Increased heartbeat interval
         return () => {
+            window.removeEventListener('widgetCall', handleWidgetCall);
             if (clientRef.current) {
                 // Publish offline before closing if possible
                 if (clientRef.current.connected) {
@@ -261,7 +277,7 @@ export const useMqtt = () => {
             }
             clearInterval(interval);
         };
-    }, [connect, sendHeartbeat, deviceId]);
+    }, [connect, sendHeartbeat, deviceId, sendCall, setCallStatus]);
 
     const sendChat = useCallback((text: string, targetId?: string) => {
         if (clientRef.current && clientRef.current.connected) {

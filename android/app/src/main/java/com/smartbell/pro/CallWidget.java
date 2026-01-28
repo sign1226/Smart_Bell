@@ -66,17 +66,15 @@ public class CallWidget extends AppWidgetProvider {
         String targetId = prefs.getString("targetId_" + appWidgetId, null);
         String targetName = prefs.getString("targetName_" + appWidgetId, "全員");
 
-        Toast.makeText(context, targetName + " を呼出中...", Toast.LENGTH_SHORT).show();
+        Log.d(TAG, "Starting MainActivity from widget. targetId=" + targetId + ", targetName=" + targetName);
 
-        Intent intent = new Intent(context, MqttForegroundService.class);
-        intent.setAction("com.smartbell.pro.ACTION_TRIGGER_CALL");
+        // アプリ本体を起動し、インテントで情報を渡す
+        Intent intent = new Intent(context, MainActivity.class);
+        intent.setAction(ACTION_CALL);
         intent.putExtra("targetId", targetId);
         intent.putExtra("targetName", targetName);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            context.startForegroundService(intent);
-        } else {
-            context.startService(intent);
-        }
+        context.startActivity(intent);
     }
 }
