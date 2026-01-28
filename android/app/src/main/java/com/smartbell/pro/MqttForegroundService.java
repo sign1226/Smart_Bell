@@ -107,6 +107,8 @@ public class MqttForegroundService extends Service {
                         // Immediate Feedback: Sending...
                         android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
                         final String finalTargetName = targetName;
+                        // Use LENGTH_LONG for the initial "Calling" to ensure it's seen,
+                        // but subsequent Acks will follow.
                         mainHandler.post(() -> android.widget.Toast
                                 .makeText(this, (targetId != null ? finalTargetName : "全員") + " へ呼出中...",
                                         android.widget.Toast.LENGTH_SHORT)
@@ -318,50 +320,7 @@ public class MqttForegroundService extends Service {
                 Intent broadcast = new Intent("com.smartbell.pro.SHOW_CALL");
                 broadcast.putExtra("data", payloadStr);
                 LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
-            } else if ("ack".equals(cmd)) {
-                String forCmd = payload.optString("forCmd");
-                if ("call".equals(forCmd)) {
-                    String fromName = payload.optString("from", "相手");
-                    showCallDeliveredNotification(fromName);
                 }
-            } else if ("chat".equals(cmd)) {
-                String sender = payload.optString("from", "誰か");
-                String text = payload.optString("text", "メッセージが届きました");
-                String fromId = payload.optString("fromId", "");
-
-                // Skip if message is from self
-                if (fromId.equals(deviceId)) {
-                    Log.d(TAG, "Ignoring self-sent chat message");
-                    return;
-                }
-
-                // Broadcast chat message to JS
-                Intent broadcast = new Intent("com.smartbell.pro.CHAT_MESSAGE");
-                broadcast.putExtra("data", payloadStr);
-                LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
-
-                // Store message for later retrieval by UI (Drain logic)
-                savePendingChatMessage(payloadStr);
-
-                // Send Ack for chat if targeted to us or broadcast
-                String msgId = payload.optString("id");
-                if (!msgId.isEmpty()) {
-                    try {
-                        JSONObject ackPayload = new JSONObject();
-                        ackPayload.put("cmd", "ack");
-                        ackPayload.put("from", clientId);
-                        ackPayload.put("fromId", deviceId);
-                        ackPayload.put("forCmd", "chat");
-                        ackPayload.put("msgId", msgId);
-                        ackPayload.put("timestamp", System.currentTimeMillis());
-                        mqttClient.publish("smartbell/chat/" + fromId, ackPayload.toString().getBytes(), 1, false);
-                    } catch (Exception e) {
-                        Log.e(TAG, "Failed to send chat ack", e);
-                    }
-                }
-
-                // Show local notification for chat
-                showChatNotification(sender, text);
             } else if ("ack".equals(cmd)) {
                 String forCmd = payload.optString("forCmd");
                 if ("call".equals(forCmd)) {
@@ -374,7 +333,7 @@ public class MqttForegroundService extends Service {
                     broadcast.putExtra("data", payloadStr);
                     LocalBroadcastManager.getInstance(this).sendBroadcast(broadcast);
                 }
-            }
+            } else if ("chat".equals(cmd)) {
 
         } catch (Exception e) {
             Log.e(TAG, "JSON Parse error", e);
