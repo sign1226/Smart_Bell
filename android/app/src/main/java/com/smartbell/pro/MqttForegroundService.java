@@ -130,7 +130,21 @@ public class MqttForegroundService extends Service {
                 String brokerUrl = "ws://" + host + ":" + port;
                 Log.d(TAG, "Creating new MQTT client for " + brokerUrl);
                 mqttClient = new MqttAsyncClient(brokerUrl, clientId + "_android", new MemoryPersistence());
-                mqttClient.setCallback(new MqttCallback() {
+                mqttClient.setCallback(new org.eclipse.paho.client.mqttv3.MqttCallbackExtended() {
+                    @Override
+                    public void connectComplete(boolean reconnect, String serverURI) {
+                        Log.d(TAG, "MQTT Connection Complete. Reconnect: " + reconnect);
+                        if (reconnect) {
+                            publishOnlineStatus();
+                            subscribeAll();
+                            if (pendingCallIntent != null) {
+                                Log.d(TAG, "Processing pending intent after reconnect");
+                                triggerCall(pendingCallIntent, false);
+                                pendingCallIntent = null;
+                            }
+                        }
+                    }
+
                     @Override
                     public void connectionLost(Throwable cause) {
                         Log.e(TAG, "Connection lost", cause);
