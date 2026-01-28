@@ -19,7 +19,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
-import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
@@ -34,7 +34,7 @@ public class MqttForegroundService extends Service {
     public static final String ACTION_START = "com.smartbell.pro.action.START";
     public static final String ACTION_STOP = "com.smartbell.pro.action.STOP";
 
-    private MqttClient mqttClient;
+    private MqttAsyncClient mqttClient;
     private String host;
     private int port;
     private String topic;
@@ -179,7 +179,7 @@ public class MqttForegroundService extends Service {
 
             Log.d(TAG, "Connecting to " + brokerUrl);
 
-            mqttClient = new MqttClient(brokerUrl, clientId + "_android", new MemoryPersistence());
+            mqttClient = new MqttAsyncClient(brokerUrl, clientId + "_android", new MemoryPersistence());
             mqttClient.setCallback(new MqttCallback() {
                 @Override
                 public void connectionLost(Throwable cause) {
