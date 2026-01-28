@@ -252,23 +252,25 @@ public class MqttForegroundService extends Service {
         try {
             if (mqttClient != null && mqttClient.isConnected()) {
                 if (topic != null)
-                    mqttClient.subscribe(topic);
+                    mqttClient.subscribe(topic, 1);
                 if (deviceId != null && !deviceId.isEmpty()) {
-                    mqttClient.subscribe("smartbell/call/" + deviceId);
-                    mqttClient.subscribe("smartbell/chat/" + deviceId);
-                    mqttClient.subscribe("smartbell/chat/all");
+                    mqttClient.subscribe("smartbell/call/" + deviceId, 1);
+                    mqttClient.subscribe("smartbell/chat/" + deviceId, 1);
+                    mqttClient.subscribe("smartbell/chat/all", 1);
                 }
                 Log.d(TAG, "Subscribed to all topics");
             }
         } catch (MqttException e) {
-            Log.e(TAG, "MQTT Connect Error", e);
+            Log.e(TAG, "Subscription Error", e);
         }
     }
 
     private void disconnectMqtt() {
         if (mqttClient != null) {
             try {
-                mqttClient.disconnect();
+                if (mqttClient.isConnected()) {
+                    mqttClient.disconnect();
+                }
                 mqttClient.close();
             } catch (MqttException e) {
                 e.printStackTrace();
