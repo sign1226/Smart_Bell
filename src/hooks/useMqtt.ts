@@ -140,6 +140,10 @@ export const useMqtt = () => {
                             if (payload.forCmd === 'call') {
                                 console.log("Call Ack received from", payload.from);
                                 setCallStatus('delivered');
+                                // Reset status after 5 seconds
+                                setTimeout(() => {
+                                    setCallStatus(prev => prev === 'delivered' ? 'idle' : prev);
+                                }, 5000);
                             } else if (payload.forCmd === 'chat' && payload.msgId) {
                                 console.log("Chat Ack received for", payload.msgId);
                                 updateChatMessage(payload.msgId, { isDelivered: true });

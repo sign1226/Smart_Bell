@@ -122,58 +122,38 @@ public class MqttForegroundService extends Service {
 
     private void connectMqtt() {
         try {
-            if (mqttClient != null && mqttClient.isConnected()) {
-                return;
+            if (mqttClient != null) {
+                if (mqttClient.isConnected()) {
+                    Log.d(TAG, "MQTT client already connected.");
+                    return;
+                }
+                // If it exists but not connected, try to connect using same client
+                Log.d(TAG, "MQTT client exists but not connected. Re-connecting...");
+            } else {
+                String brokerUrl = "ws://" + host + ":" + port;
+                Log.d(TAG, "Creating new MQTT client for " + brokerUrl);
+                mqttClient = new MqttAsyncClient(brokerUrl, clientId + "_android", new MemoryPersistence());
+                mqttClient.setCallback(new MqttCallback() {
+                    @Override
+                    public void connectionLost(Throwable cause) {
+                        Log.e(TAG, "Connection lost", cause);
+                    }
+
+                    @Override
+                    public void messageArrived(String topic, MqttMessage message) throws Exception {
+                        String payload = new String(message.getPayload());
+                        Log.d(TAG, "Message arrived: " + payload);
+                        handleMessage(payload);
+                    }
+
+                    @Override
+                    public void deliveryComplete(IMqttDeliveryToken token) {
+                        Log.d(TAG, "Delivery complete for msgId: " + token.getMessageId());
+                        // Removed redundant Toast here to prevent overlap with "Ringing" (Ack) Toast
+                        deliveryTargets.remove(token.getMessageId());
+                    }
+                });
             }
-
-            String brokerUrl = "tcp://" + host + ":" + port; // Paho uses tcp:// for non-ws
-            // Note: If using WebSocket via Paho, it's ws://, but standard Paho often
-            // prefers TCP.
-            // However, the web client uses WebSockets.
-            // If the broker supports both, we should likely use TCP for Android Native for
-            // better stability?
-            // Or use WS if that's what the broker is configured for.
-            // Let's assume the user might have configured a WS port for the web app.
-            // If the broker is mosquitto, usually 1883 is TCP, 9001 or 8083 is WS.
-            // The user config has "port" which is likely the WS port since the React app
-            // uses it.
-            // We might need to ask or assume.
-            // For now, let's try to use the URI provided. Paho Java supports "ws://".
-
-            // Adjust schema based on port if needed, but let's trust the input for a moment
-            // or fallback.
-            // Actually, usually React app uses WS port (e.g. 8083), but Android Native
-            // might work better with TCP (1883).
-            // But we only have one port in config currently.
-            // Let's assume we use the same protocol (WS) if the port indicates it, or we
-            // try to guess.
-            // Paho Java client supports `ws://host:port`.
-
-            brokerUrl = "ws://" + host + ":" + port;
-
-            Log.d(TAG, "Connecting to " + brokerUrl);
-
-            mqttClient = new MqttAsyncClient(brokerUrl, clientId + "_android", new MemoryPersistence());
-            mqttClient.setCallback(new MqttCallback() {
-                @Override
-                public void connectionLost(Throwable cause) {
-                    Log.e(TAG, "Connection lost", cause);
-                }
-
-                @Override
-                public void messageArrived(String topic, MqttMessage message) throws Exception {
-                    String payload = new String(message.getPayload());
-                    Log.d(TAG, "Message arrived: " + payload);
-                    handleMessage(payload);
-                }
-
-                @Override
-                public void deliveryComplete(IMqttDeliveryToken token) {
-                    Log.d(TAG, "Delivery complete for msgId: " + token.getMessageId());
-                    // Removed redundant Toast here to prevent overlap with "Ringing" (Ack) Toast
-                    deliveryTargets.remove(token.getMessageId());
-                }
-            });
 
             MqttConnectOptions options = new MqttConnectOptions();
             options.setAutomaticReconnect(true);
