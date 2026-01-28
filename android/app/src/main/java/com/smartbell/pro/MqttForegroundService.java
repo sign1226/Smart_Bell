@@ -380,6 +380,11 @@ public class MqttForegroundService extends Service {
     }
 
     private void showCallDeliveredNotification(String targetName) {
+        // Show Toast for immediate feedback even in background
+        android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+        mainHandler.post(() -> android.widget.Toast
+                .makeText(this, targetName + " に着信中", android.widget.Toast.LENGTH_SHORT).show());
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager manager = getSystemService(NotificationManager.class);
             // Reuse service channel or create a new high priority one for feedback
