@@ -243,19 +243,32 @@ export const useMqtt = () => {
     }, [config.clientId, deviceId]);
 
     useEffect(() => {
-        const handleWidgetCall = (event: any) => {
+        const handleWidgetCall = async (event: any) => {
             const { targetId } = event.detail || {};
             console.log('Widget call triggered for:', targetId);
 
-            // Check connection and send
+            setCallStatus('sending');
+
+            // Wait for connection if not connected (max 10 seconds)
+            let attempts = 0;
+            const maxAttempts = 50; // 50 * 200ms = 10s
+
+            while ((!clientRef.current || !clientRef.current.connected) && attempts < maxAttempts) {
+                if (attempts === 0) console.log('Waiting for MQTT connection...');
+                await new Promise(resolve => setTimeout(resolve, 200));
+                attempts++;
+            }
+
+            // Check connection again and send
             if (clientRef.current && clientRef.current.connected) {
-                setCallStatus('sending');
+                console.log(`Connection established after ${attempts * 200}ms. Sending call...`);
                 const success = sendCall(targetId);
                 if (!success) {
                     setCallStatus('failed');
                     setTimeout(() => setCallStatus('idle'), 3000);
                 }
             } else {
+                console.error('Failed to connect to MQTT after timeout');
                 setCallStatus('failed');
                 setTimeout(() => setCallStatus('idle'), 3000);
             }
