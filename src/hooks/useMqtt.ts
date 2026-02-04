@@ -249,6 +249,12 @@ export const useMqtt = () => {
 
             setCallStatus('sending');
 
+            // Timeout to reset status if no ACK received (5 seconds)
+            const timeoutId = setTimeout(() => {
+                setCallStatus(prev => prev === 'sending' ? 'failed' : prev);
+                setTimeout(() => setCallStatus('idle'), 3000);
+            }, 5000);
+
             // Wait for connection if not connected (max 10 seconds)
             let attempts = 0;
             const maxAttempts = 50; // 50 * 200ms = 10s
@@ -264,11 +270,13 @@ export const useMqtt = () => {
                 console.log(`Connection established after ${attempts * 200}ms. Sending call...`);
                 const success = sendCall(targetId);
                 if (!success) {
+                    clearTimeout(timeoutId);
                     setCallStatus('failed');
                     setTimeout(() => setCallStatus('idle'), 3000);
                 }
             } else {
                 console.error('Failed to connect to MQTT after timeout');
+                clearTimeout(timeoutId);
                 setCallStatus('failed');
                 setTimeout(() => setCallStatus('idle'), 3000);
             }
@@ -278,6 +286,22 @@ export const useMqtt = () => {
 
         // Initial setup for LWT (Last Will)
         connect();
+
+        // Check for pending widget call (cold start)
+        import('../plugins/IncomingCall').then(({ default: IncomingCall }) => {
+            IncomingCall.getPendingWidgetCall().then(data => {
+                // targetId can be "" for "Everyone", so we check if it is explicitly a string
+                if (typeof data.targetId === 'string' || typeof data.targetName === 'string') {
+                    console.log('Pending widget call found:', data);
+                    handleWidgetCall({ detail: data });
+                    IncomingCall.clearPendingWidgetCall();
+                } else {
+                    console.log('No valid pending widget call found (Normal Launch)');
+                    IncomingCall.clearPendingWidgetCall(); // Ensure it's clean
+                }
+            });
+        });
+
         const interval = setInterval(sendHeartbeat, 30000); // Increased heartbeat interval
         return () => {
             window.removeEventListener('widgetCall', handleWidgetCall);

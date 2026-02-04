@@ -27,6 +27,8 @@ export interface IncomingCallPlugin {
     }): Promise<void>;
     stopService(): Promise<void>;
     getPendingChatMessages(): Promise<{ messages: any[] }>;
+    getPendingWidgetCall(): Promise<{ targetId: string | null; targetName: string | null }>;
+    clearPendingWidgetCall(): Promise<void>;
 }
 
 const IncomingCall = registerPlugin<IncomingCallPlugin>('IncomingCall');

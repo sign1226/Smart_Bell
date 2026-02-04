@@ -12,18 +12,12 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'phone' | 'chat' | 'settings'>('phone');
 
   React.useEffect(() => {
-    const handleWidgetCall = () => {
-      console.log('Widget call trigger received');
-      sendCall();
-    };
     const handleOpenChat = () => {
       console.log('Open chat trigger received');
       setActiveTab('chat');
     };
-    window.addEventListener('widgetCall', handleWidgetCall);
     window.addEventListener('openChat', handleOpenChat);
     return () => {
-      window.removeEventListener('widgetCall', handleWidgetCall);
       window.removeEventListener('openChat', handleOpenChat);
     };
   }, [sendCall]);

@@ -47,6 +47,7 @@ public class CallWidget extends AppWidgetProvider {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         views.setOnClickPendingIntent(R.id.widget_button, pendingIntent);
+        views.setTextViewText(R.id.widget_target_name, targetName);
         appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 

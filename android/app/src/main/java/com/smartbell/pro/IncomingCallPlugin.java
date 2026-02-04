@@ -324,4 +324,19 @@ public class IncomingCallPlugin extends Plugin {
             call.reject("Failed to parse pending messages", e);
         }
     }
+
+    @PluginMethod
+    public void getPendingWidgetCall(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("targetId", MainActivity.pendingTargetId);
+        ret.put("targetName", MainActivity.pendingTargetName);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void clearPendingWidgetCall(PluginCall call) {
+        MainActivity.pendingTargetId = null;
+        MainActivity.pendingTargetName = null;
+        call.resolve();
+    }
 }

@@ -5,6 +5,8 @@ import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    public static String pendingTargetId = null;
+    public static String pendingTargetName = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -34,7 +36,14 @@ public class MainActivity extends BridgeActivity {
             String jsFunc = String.format(
                     "window.dispatchEvent(new CustomEvent('widgetCall', { detail: { targetId: '%s', targetName: '%s' } }))",
                     targetId, targetName);
-            bridge.getWebView().evaluateJavascript(jsFunc, null);
+
+            if (bridge != null && bridge.getWebView() != null) {
+                bridge.getWebView().evaluateJavascript(jsFunc, null);
+            } else {
+                // WebView not ready, store for later
+                pendingTargetId = targetId;
+                pendingTargetName = targetName;
+            }
         } else if ("com.smartbell.pro.ACTION_OPEN_CHAT".equals(action)) {
             bridge.getWebView().evaluateJavascript("window.dispatchEvent(new CustomEvent('openChat'))", null);
         }
