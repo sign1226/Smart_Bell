@@ -55,8 +55,8 @@ interface AppState {
   setIsRemoteOnline: (online: boolean) => void;
   connectionError: string | null;
   setConnectionError: (error: string | null) => void;
-  onlineStatuses: Map<string, boolean>;
-  setOnlineStatuses: React.Dispatch<React.SetStateAction<Map<string, boolean>>>;
+  onlineStatuses: Map<string, { web: boolean; android: boolean }>;
+  setOnlineStatuses: React.Dispatch<React.SetStateAction<Map<string, { web: boolean; android: boolean }>>>;
   callStatus: 'idle' | 'sending' | 'delivered' | 'failed';
   setCallStatus: React.Dispatch<React.SetStateAction<'idle' | 'sending' | 'delivered' | 'failed'>>;
   defaultRecipientId: string;
@@ -102,7 +102,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isRinging, setIsRinging] = useState(false);
   const [isRemoteOnline, setIsRemoteOnline] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [onlineStatuses, setOnlineStatuses] = useState<Map<string, boolean>>(new Map());
+  const [onlineStatuses, setOnlineStatuses] = useState<Map<string, { web: boolean; android: boolean }>>(new Map());
   const [callStatus, setCallStatus] = useState<'idle' | 'sending' | 'delivered' | 'failed'>('idle');
   const [defaultRecipientId, setDefaultRecipientId] = useState<string>(() => {
     return localStorage.getItem('bell_default_recipient') || '';

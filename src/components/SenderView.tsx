@@ -85,13 +85,13 @@ export const SenderView: React.FC<SenderViewProps> = ({ sendCall }) => {
                         <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <div style={{ padding: '6px', backgroundColor: 'rgba(59, 130, 246, 0.2)', borderRadius: '8px', display: 'flex', position: 'relative' }}>
                                 <Users size={16} color="#3b82f6" />
-                                {targetId && onlineStatuses.get(targetId) && (
+                                {targetId && (onlineStatuses.get(targetId)?.web || onlineStatuses.get(targetId)?.android) && (
                                     <div style={{ position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderRadius: '50%', backgroundColor: '#22c55e', border: '1.5px solid #1e293b' }} />
                                 )}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {targetId ? getDisplayName(targetId) : '全員 (一斉呼出)'}
-                                {targetId && onlineStatuses.get(targetId) && (
+                                {targetId && (onlineStatuses.get(targetId)?.web || onlineStatuses.get(targetId)?.android) && (
                                     <span style={{ fontSize: '10px', color: '#22c55e', backgroundColor: 'rgba(34, 197, 94, 0.1)', padding: '1px 6px', borderRadius: '4px' }}>Online</span>
                                 )}
                             </div>
@@ -151,10 +151,10 @@ export const SenderView: React.FC<SenderViewProps> = ({ sendCall }) => {
                                 >
                                     <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold', position: 'relative' }}>
                                         {contact.name[0].toUpperCase()}
-                                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 7, height: 7, borderRadius: '50%', backgroundColor: onlineStatuses.get(contact.id) ? '#22c55e' : '#9ca3af', border: '1px solid #1e293b' }} />
+                                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: 7, height: 7, borderRadius: '50%', backgroundColor: (onlineStatuses.get(contact.id)?.web || onlineStatuses.get(contact.id)?.android) ? '#22c55e' : '#9ca3af', border: '1px solid #1e293b' }} />
                                     </div>
                                     <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{contact.name}</span>
-                                    {onlineStatuses.get(contact.id) && <span style={{ fontSize: '9px', color: '#22c55e', marginRight: '8px' }}>Online</span>}
+                                    {(onlineStatuses.get(contact.id)?.web || onlineStatuses.get(contact.id)?.android) && <span style={{ fontSize: '9px', color: '#22c55e', marginRight: '8px' }}>Online</span>}
                                     {targetId === contact.id && <Check size={14} style={{ marginLeft: 'auto', color: '#3b82f6' }} />}
                                 </button>
                             ))}

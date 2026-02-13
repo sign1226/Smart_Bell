@@ -43,6 +43,7 @@ public class MqttForegroundService extends Service {
     private android.os.PowerManager.WakeLock wakeLock;
     private final java.util.Map<Integer, String> deliveryTargets = new java.util.HashMap<>();
     private Intent pendingCallIntent;
+    private android.net.ConnectivityManager.NetworkCallback networkCallback;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -80,7 +81,7 @@ public class MqttForegroundService extends Service {
                         .build();
 
                 startForeground(1, notification);
-
+                registerNetworkCallback();
                 connectMqtt();
             } else if ("com.smartbell.pro.ACTION_TRIGGER_CALL".equals(action)) {
                 // ウィジェットからの呼び出し - 既存のMQTT接続を使用してメッセージを送信
@@ -103,6 +104,7 @@ public class MqttForegroundService extends Service {
                 } else {
                     stopForeground(true);
                 }
+                unregisterNetworkCallback();
                 stopSelf();
             }
         }
@@ -112,6 +114,7 @@ public class MqttForegroundService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        unregisterNetworkCallback();
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
@@ -169,8 +172,8 @@ public class MqttForegroundService extends Service {
             MqttConnectOptions options = new MqttConnectOptions();
             options.setAutomaticReconnect(true);
             options.setCleanSession(false);
-            options.setConnectionTimeout(60);
-            options.setKeepAliveInterval(60);
+            options.setConnectionTimeout(30);
+            options.setKeepAliveInterval(30);
 
             // LWT (Last Will and Testament)
             if (deviceId != null && !deviceId.isEmpty()) {
@@ -192,7 +195,7 @@ public class MqttForegroundService extends Service {
 
                 @Override
                 public void onFailure(org.eclipse.paho.client.mqttv3.IMqttToken asyncActionToken, Throwable exception) {
-                    Log.e(TAG, "MQTT Connect Failed", exception);
+                    Log.e(TAG, "MQTT Connect Failed: " + (exception != null ? exception.getMessage() : "unknown"));
                     pendingCallIntent = null;
                 }
             });
@@ -263,6 +266,45 @@ public class MqttForegroundService extends Service {
             }
         } catch (MqttException e) {
             Log.e(TAG, "Subscription Error", e);
+        }
+    }
+
+    private void registerNetworkCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            android.net.ConnectivityManager connectivityManager = (android.net.ConnectivityManager) getSystemService(
+                    Context.CONNECTIVITY_SERVICE);
+            if (networkCallback == null) {
+                networkCallback = new android.net.ConnectivityManager.NetworkCallback() {
+                    @Override
+                    public void onAvailable(android.net.Network network) {
+                        Log.d(TAG, "Network available, ensuring MQTT connection...");
+                        // Use a small delay to let network stabilize
+                        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                            if (mqttClient == null || !mqttClient.isConnected()) {
+                                connectMqtt();
+                            } else {
+                                publishOnlineStatus(); // Refresh status on new network
+                            }
+                        }, 1000);
+                    }
+                };
+                connectivityManager.registerDefaultNetworkCallback(networkCallback);
+                Log.d(TAG, "NetworkCallback registered");
+            }
+        }
+    }
+
+    private void unregisterNetworkCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && networkCallback != null) {
+            android.net.ConnectivityManager connectivityManager = (android.net.ConnectivityManager) getSystemService(
+                    Context.CONNECTIVITY_SERVICE);
+            try {
+                connectivityManager.unregisterNetworkCallback(networkCallback);
+            } catch (Exception e) {
+                Log.e(TAG, "Error unregistering network callback", e);
+            }
+            networkCallback = null;
+            Log.d(TAG, "NetworkCallback unregistered");
         }
     }
 

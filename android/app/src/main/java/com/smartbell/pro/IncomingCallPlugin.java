@@ -69,8 +69,13 @@ public class IncomingCallPlugin extends Plugin {
     @PluginMethod
     public void requestIgnoreBatteryOptimization(PluginCall call) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
-            getContext().startActivity(intent);
+            String packageName = getContext().getPackageName();
+            android.os.PowerManager pm = (android.os.PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + packageName));
+                getContext().startActivity(intent);
+            }
         }
         call.resolve();
     }

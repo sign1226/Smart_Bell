@@ -69,36 +69,24 @@ export const useMqtt = () => {
                         const parts = topic.split('/');
                         if (parts.length >= 4) {
                             const targetDeviceId = parts[2];
-                            // const platform = parts[3]; // 'web' or 'android' - currently unused but good for debug
+                            const platform = parts[3] as 'web' | 'android';
                             const status = payloadStr;
 
                             if (targetDeviceId !== deviceId) {
-                                setOnlineStatuses((prev: Map<string, boolean>) => {
+                                setOnlineStatuses((prev) => {
                                     const next = new Map(prev);
-                                    // Simple logic: if we get 'online' from any platform, mark as online.
-                                    // If 'offline', we might want to check if other platforms are online, 
-                                    // but for simplicity, let's just update the status. 
-                                    // A better approach would be to track platforms separately (e.g. Map<deviceId, Set<platform>>)
-                                    // But since we want "is User online?", and a user might have main device (android) and web open.
-                                    // Let's assume if we receive 'online' it overrides 'offline'.
-                                    // But if we receive 'offline' from web, but android is online?
-                                    // Ideally: track `deviceId: { web: boolean, android: boolean }`
-                                    // For now, let's just set it to the latest status validation.
-                                    // Refinement: The user wants to know if the device is online.
-                                    // Let's rely on the concept that 'offline' means offline.
-                                    // Actually, if I refresh page, I send offline then online.
+                                    const current = next.get(targetDeviceId) || { web: false, android: false };
 
-                                    // Let's try to track count or just trust the latest retained message?
-                                    // Retained messages are great.
-                                    // If I subscribe, I get the last known status.
-
-                                    // Let's just set the boolean for now.
-                                    next.set(targetDeviceId, status === 'online');
+                                    if (platform === 'web' || platform === 'android') {
+                                        next.set(targetDeviceId, {
+                                            ...current,
+                                            [platform]: status === 'online'
+                                        });
+                                    }
                                     return next;
                                 });
                             }
                         }
-                        // Don't return, as we might want to process other logic (unlikely for presence topic but safe)
                     }
 
                     // Check if it's JSON before parsing
