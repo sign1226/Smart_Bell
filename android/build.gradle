@@ -23,9 +23,10 @@ allprojects {
         mavenCentral()
     }
     // ライブラリ等から発生する unchecked や deprecation 警告を抑制してログをクリーンに保つ
-    tasks.withType(JavaCompile) {
-        options.compilerArgs << "-Xlint:-unchecked"
-        options.compilerArgs << "-Xlint:-deprecation"
+    afterEvaluate { project ->
+        project.tasks.withType(JavaCompile).configureEach {
+            options.compilerArgs << "-Xlint:-unchecked" << "-Xlint:-deprecation"
+        }
     }
 }
 
