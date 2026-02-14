@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Bell, UserCircle, Users, Vibrate } from 'lucide-react';
+import { Bell, UserCircle, Users, Vibrate, Info } from 'lucide-react';
 import IncomingCall from '../plugins/IncomingCall';
 import { ContactsView } from './ContactsView';
 
 export const SettingsView: React.FC = () => {
-    const { config, setConfig, deviceId, contacts, defaultRecipientId, setDefaultRecipientId } = useApp();
+    const { config, setConfig, deviceId, contacts, defaultRecipientId, setDefaultRecipientId, setShowTutorial } = useApp();
     const [localConfig, setLocalConfig] = useState(config);
     const [view, setView] = useState<'main' | 'contacts'>('main');
 
@@ -120,13 +120,15 @@ export const SettingsView: React.FC = () => {
             </section>
 
             {isOptimizingBattery && (
-                <section style={{
-                    marginBottom: '25px',
-                    padding: '15px',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid #ef4444',
-                    borderRadius: '12px'
-                }}>
+                <section
+                    id="settings-battery-card"
+                    style={{
+                        marginBottom: '25px',
+                        padding: '15px',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid #ef4444',
+                        borderRadius: '12px'
+                    }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ef4444', marginBottom: '10px', fontWeight: 'bold' }}>
                         <Vibrate size={20} />
                         停止の制限がかかっています
@@ -259,7 +261,7 @@ export const SettingsView: React.FC = () => {
                 </select>
             </section>
 
-            <section style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <section id="settings-mqtt-card" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <div>
                     <label style={{ display: 'block', marginBottom: '5px', opacity: 0.7 }}>MQTTブローカー ホスト名</label>
                     <input
@@ -305,10 +307,33 @@ export const SettingsView: React.FC = () => {
                     border: '1px solid #444',
                     borderRadius: '20px',
                     fontSize: '0.8rem',
-                    color: '#aaa'
+                    color: '#aaa',
+                    marginBottom: '20px'
                 }}
             >
                 アプリをリロード
+            </button>
+
+            <button
+                onClick={() => setShowTutorial(true)}
+                style={{
+                    width: '100%',
+                    padding: '16px',
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '16px',
+                    color: '#94a3b8',
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginTop: '20px',
+                    marginBottom: '40px'
+                }}
+            >
+                <Info size={18} />
+                アプリの使い方ガイドを再開
             </button>
         </div >
     );
