@@ -157,7 +157,11 @@ public class MqttForegroundService extends Service {
                 .setOngoing(true)
                 .build();
 
-        startForeground(1, notification);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(1, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING);
+        } else {
+            startForeground(1, notification);
+        }
     }
 
     @Override
@@ -322,6 +326,13 @@ public class MqttForegroundService extends Service {
                 @Override
                 public void onFailure(org.eclipse.paho.client.mqttv3.IMqttToken asyncActionToken, Throwable exception) {
                     Log.e(TAG, "MQTT Connect Failed: " + (exception != null ? exception.getMessage() : "unknown"));
+                    if (pendingCallIntent != null) {
+                        android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                        mainHandler.post(() -> {
+                            android.widget.Toast.makeText(getApplicationContext(),
+                                    "ネットワークエラーのため送信できませんでした", android.widget.Toast.LENGTH_SHORT).show();
+                        });
+                    }
                     pendingCallIntent = null;
                 }
             });
@@ -363,6 +374,11 @@ public class MqttForegroundService extends Service {
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to send call", e);
+            android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+            mainHandler.post(() -> {
+                android.widget.Toast.makeText(getApplicationContext(),
+                        "送信に失敗しました。ネットワークを確認してください", android.widget.Toast.LENGTH_SHORT).show();
+            });
         }
     }
 

@@ -17,6 +17,11 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(IncomingCallPlugin.class);
         super.onCreate(savedInstanceState);
+
+        // Check for updates from GitHub
+        AutoUpdater updater = new AutoUpdater(this);
+        updater.checkUpdate(true); // silent mode for startup check
+
         requestBatteryOptimizationExemption();
         handleIntent(getIntent());
     }
