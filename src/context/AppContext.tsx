@@ -61,6 +61,10 @@ interface AppState {
   setCallStatus: React.Dispatch<React.SetStateAction<'idle' | 'sending' | 'delivered' | 'failed'>>;
   defaultRecipientId: string;
   setDefaultRecipientId: (id: string) => void;
+  hasSeenTutorial: boolean;
+  setHasSeenTutorial: (seen: boolean) => void;
+  showTutorial: boolean;
+  setShowTutorial: (show: boolean) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -107,6 +111,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [defaultRecipientId, setDefaultRecipientId] = useState<string>(() => {
     return localStorage.getItem('bell_default_recipient') || '';
   });
+
+  const [hasSeenTutorial, setHasSeenTutorialState] = useState<boolean>(() => {
+    return localStorage.getItem('bell_has_seen_tutorial') === 'true';
+  });
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  const setHasSeenTutorial = useCallback((seen: boolean) => {
+    setHasSeenTutorialState(seen);
+    localStorage.setItem('bell_has_seen_tutorial', seen ? 'true' : 'false');
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('bell_mode', mode);
@@ -211,7 +225,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       connectionError, setConnectionError: useCallback((error: string | null) => setConnectionError(error), []),
       onlineStatuses, setOnlineStatuses,
       callStatus, setCallStatus,
-      defaultRecipientId, setDefaultRecipientId: (id: string) => setDefaultRecipientId(id)
+      defaultRecipientId, setDefaultRecipientId: (id: string) => setDefaultRecipientId(id),
+      hasSeenTutorial, setHasSeenTutorial,
+      showTutorial, setShowTutorial
     }}>
       {children}
     </AppContext.Provider>

@@ -94,11 +94,17 @@ export const SettingsView: React.FC = () => {
     }
 
     return (
-        <div className="container" style={{ padding: '20px', position: 'relative', height: '100%', overflowY: 'auto', backgroundColor: 'black', color: 'white' }}>
+        <div style={{
+            padding: '20px',
+            position: 'relative',
+            height: '100%',
+            overflowY: 'auto'
+        }}>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '20px' }}>設定</h1>
 
             <section style={{ marginBottom: '25px' }}>
                 <button
+                    id="settings-contacts-button"
                     onClick={() => setView('contacts')}
                     style={{
                         width: '100%',

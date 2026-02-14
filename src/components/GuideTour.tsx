@@ -33,6 +33,13 @@ const steps: TourStep[] = [
         position: 'bottom'
     },
     {
+        targetId: 'settings-contacts-button',
+        title: '連絡先の登録',
+        content: '「連絡先の管理」から、呼び出したい相手のデバイスIDを登録できます。相手のIDを聞いて登録してみましょう。',
+        tab: 'settings',
+        position: 'bottom'
+    },
+    {
         targetId: 'settings-battery-card',
         title: '安定動作の重要設定',
         content: '「バッテリー最適化」を解除することで、画面がオフでも確実に着信できるようになります。必ず「制限なし」に設定してください。',
@@ -59,6 +66,13 @@ const steps: TourStep[] = [
         content: 'チャット機能では短いメッセージのやり取りができます。',
         tab: 'chat',
         position: 'top'
+    },
+    {
+        targetId: 'chat-avatar-add',
+        title: '簡単・連絡先登録',
+        content: '届いたメッセージのアイコンをタップするだけで、簡単に連絡先に追加できます。これが最もおすすめの登録方法です！',
+        tab: 'chat',
+        position: 'bottom'
     },
     {
         targetId: 'tutorial-finish',

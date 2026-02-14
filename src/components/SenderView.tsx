@@ -198,7 +198,9 @@ export const SenderView: React.FC<SenderViewProps> = ({ sendCall }) => {
                 </AnimatePresence>
 
                 <motion.button
-                    whileTap={{ scale: 0.9 }}
+                    id="sender-bell-button"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={handleCall}
                     disabled={cooldown > 0 || !isConnected}
                     style={{

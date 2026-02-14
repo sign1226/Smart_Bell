@@ -6,10 +6,21 @@ import { SettingsView } from './components/SettingsView';
 import { useMqtt } from './hooks/useMqtt';
 import { Phone, MessageSquare, Settings } from 'lucide-react';
 import { PermissionGuide } from './components/PermissionGuide';
+import { GuideTour } from './components/GuideTour';
+import { useApp } from './context/AppContext';
 
 const AppContent: React.FC = () => {
   const { sendCall, sendChat } = useMqtt();
   const [activeTab, setActiveTab] = useState<'phone' | 'chat' | 'settings'>('phone');
+
+  const { showTutorial, setShowTutorial, hasSeenTutorial } = useApp();
+
+  React.useEffect(() => {
+    // Show tutorial automatically for first time users
+    if (!hasSeenTutorial) {
+      setTimeout(() => setShowTutorial(true), 1500);
+    }
+  }, [hasSeenTutorial, setShowTutorial]);
 
   React.useEffect(() => {
     const handleOpenChat = () => {
@@ -51,9 +62,11 @@ const AppContent: React.FC = () => {
         <PermissionGuide />
       </div>
 
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }} id="tutorial-welcome">
         {renderContent()}
       </div>
+
+      {showTutorial && <GuideTour onTabChange={setActiveTab} />}
 
       {/* Floating Bottom Navigation */}
       <div style={{
@@ -77,6 +90,7 @@ const AppContent: React.FC = () => {
           boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
         }}>
           <button
+            id="nav-phone"
             onClick={() => setActiveTab('phone')}
             style={{
               display: 'flex',
@@ -94,6 +108,7 @@ const AppContent: React.FC = () => {
             <Phone size={28} strokeWidth={activeTab === 'phone' ? 2.5 : 2} />
           </button>
           <button
+            id="nav-chat"
             onClick={() => setActiveTab('chat')}
             style={{
               display: 'flex',
@@ -111,6 +126,7 @@ const AppContent: React.FC = () => {
             <MessageSquare size={28} strokeWidth={activeTab === 'chat' ? 2.5 : 2} />
           </button>
           <button
+            id="nav-settings"
             onClick={() => setActiveTab('settings')}
             style={{
               display: 'flex',

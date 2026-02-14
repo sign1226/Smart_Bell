@@ -95,6 +95,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ sendChat }) => {
                             }}>
                                 {/* Avatar */}
                                 <div
+                                    id={!msg.isSelf && !isContact ? "chat-avatar-add" : undefined}
                                     onClick={() => !msg.isSelf && !isContact && handleSaveContact(msg.fromId)}
                                     style={{
                                         position: 'relative',
