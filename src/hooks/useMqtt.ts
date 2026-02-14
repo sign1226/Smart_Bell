@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import mqtt, { MqttClient } from 'mqtt';
 import { useApp } from '../context/AppContext';
 import { KeepAwake } from '@capacitor-community/keep-awake';
+import IncomingCall from '../plugins/IncomingCall';
 
 export const useMqtt = () => {
     const { config, deviceId, setIsConnected, addHistory, addChatMessage, updateChatMessage, setIsRinging, mode, setIsRemoteOnline, setConnectionError, setOnlineStatuses, setCallStatus } = useApp();
@@ -20,8 +21,9 @@ export const useMqtt = () => {
             const client = mqtt.connect(url, {
                 clientId: config.clientId,
                 clean: true,
-                connectTimeout: 5000,
-                reconnectPeriod: 2000,
+                connectTimeout: 3000,
+                reconnectPeriod: 3000,
+                keepalive: 30, // JS側も30秒に
                 will: {
                     topic: `smartbell/presence/${deviceId}/web`,
                     payload: 'offline',
@@ -274,6 +276,13 @@ export const useMqtt = () => {
 
         // Initial setup for LWT (Last Will)
         connect();
+
+        // バッテリー最適化チェックを起動時にも実行
+        IncomingCall.checkPermissions().then((perms: { batteryOptimization: boolean }) => {
+            if (!perms.batteryOptimization) {
+                console.warn('Battery Optimization is enabled. Background connection might be unstable.');
+            }
+        });
 
         // Check for pending widget call (cold start)
         import('../plugins/IncomingCall').then(({ default: IncomingCall }) => {

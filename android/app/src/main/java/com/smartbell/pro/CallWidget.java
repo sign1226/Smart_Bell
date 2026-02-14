@@ -36,46 +36,37 @@ public class CallWidget extends AppWidgetProvider {
         String targetId = prefs.getString("targetId_" + appWidgetId, null);
         String targetName = prefs.getString("targetName_" + appWidgetId, "全員");
 
-        Intent intent = new Intent(context, CallWidget.class);
-        intent.setAction(ACTION_CALL);
-        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+        // Load MQTT settings from SharedPreferences
+        SharedPreferences settings = context.getSharedPreferences("com.smartbell.pro.settings", Context.MODE_PRIVATE);
+        String host = settings.getString("mqtt_host", null);
+        int port = settings.getInt("mqtt_port", 1883);
 
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                context,
-                appWidgetId, // Use appWidgetId as requestCode for unique PendingIntents
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        // Create Intent to start service directly
+        Intent serviceIntent = new Intent(context, MqttForegroundService.class);
+        serviceIntent.setAction(MqttForegroundService.ACTION_TRIGGER_CALL);
+        serviceIntent.putExtra("targetId", targetId);
+        serviceIntent.putExtra("targetName", targetName);
+        serviceIntent.putExtra("host", host);
+        serviceIntent.putExtra("port", port);
+
+        // Use getService instead of getBroadcast for higher reliability
+        PendingIntent pendingIntent;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            pendingIntent = PendingIntent.getForegroundService(
+                    context,
+                    appWidgetId,
+                    serviceIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            pendingIntent = PendingIntent.getService(
+                    context,
+                    appWidgetId,
+                    serviceIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        }
 
         views.setOnClickPendingIntent(R.id.widget_button, pendingIntent);
         views.setTextViewText(R.id.widget_target_name, targetName);
         appWidgetManager.updateAppWidget(appWidgetId, views);
-    }
-
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        super.onReceive(context, intent);
-        if (ACTION_CALL.equals(intent.getAction())) {
-            int appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID,
-                    AppWidgetManager.INVALID_APPWIDGET_ID);
-            Log.d(TAG, "Widget Call Button Pressed for ID: " + appWidgetId);
-            sendCallMessage(context, appWidgetId);
-        }
-    }
-
-    private void sendCallMessage(Context context, int appWidgetId) {
-        SharedPreferences prefs = context.getSharedPreferences("WidgetPrefs", Context.MODE_PRIVATE);
-        String targetId = prefs.getString("targetId_" + appWidgetId, null);
-        String targetName = prefs.getString("targetName_" + appWidgetId, "全員");
-
-        Log.d(TAG, "Starting MainActivity from widget. targetId=" + targetId + ", targetName=" + targetName);
-
-        // アプリ本体を起動し、インテントで情報を渡す
-        Intent intent = new Intent(context, MainActivity.class);
-        intent.setAction(ACTION_CALL);
-        intent.putExtra("targetId", targetId);
-        intent.putExtra("targetName", targetName);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-
-        context.startActivity(intent);
     }
 }

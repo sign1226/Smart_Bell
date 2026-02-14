@@ -1,0 +1,122 @@
+
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+
+> Task :clean
+> Task :app:clean
+> Task :capacitor-android:clean
+> Task :capacitor-app:clean
+> Task :capacitor-community-keep-awake:clean
+> Task :capacitor-cordova-android-plugins:clean
+> Task :capacitor-device:clean
+> Task :capacitor-local-notifications:clean
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :capacitor-android:preBuild UP-TO-DATE
+> Task :capacitor-android:preDebugBuild UP-TO-DATE
+> Task :app:javaPreCompileDebug
+> Task :capacitor-app:preBuild UP-TO-DATE
+> Task :capacitor-app:preDebugBuild UP-TO-DATE
+> Task :capacitor-android:writeDebugAarMetadata
+> Task :capacitor-community-keep-awake:preBuild UP-TO-DATE
+> Task :capacitor-community-keep-awake:preDebugBuild UP-TO-DATE
+> Task :capacitor-app:writeDebugAarMetadata
+> Task :capacitor-cordova-android-plugins:preBuild UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:preDebugBuild UP-TO-DATE
+> Task :capacitor-community-keep-awake:writeDebugAarMetadata
+> Task :capacitor-device:preBuild UP-TO-DATE
+> Task :capacitor-device:preDebugBuild UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:writeDebugAarMetadata
+> Task :capacitor-local-notifications:preBuild UP-TO-DATE
+> Task :capacitor-local-notifications:preDebugBuild UP-TO-DATE
+> Task :capacitor-device:writeDebugAarMetadata
+> Task :capacitor-local-notifications:writeDebugAarMetadata
+> Task :capacitor-android:processDebugNavigationResources
+> Task :capacitor-app:processDebugNavigationResources
+> Task :app:checkDebugAarMetadata
+> Task :capacitor-community-keep-awake:processDebugNavigationResources
+> Task :capacitor-cordova-android-plugins:processDebugNavigationResources
+> Task :capacitor-device:processDebugNavigationResources
+> Task :capacitor-local-notifications:processDebugNavigationResources
+> Task :app:processDebugNavigationResources
+> Task :app:compileDebugNavigationResources
+> Task :app:generateDebugResValues
+> Task :capacitor-android:generateDebugResValues
+> Task :capacitor-android:generateDebugResources
+> Task :capacitor-android:packageDebugResources
+> Task :capacitor-app:generateDebugResValues
+> Task :capacitor-app:generateDebugResources
+> Task :capacitor-app:packageDebugResources
+> Task :capacitor-community-keep-awake:generateDebugResValues
+> Task :capacitor-community-keep-awake:generateDebugResources
+> Task :capacitor-community-keep-awake:packageDebugResources
+> Task :capacitor-cordova-android-plugins:generateDebugResValues
+> Task :capacitor-cordova-android-plugins:generateDebugResources
+> Task :capacitor-cordova-android-plugins:packageDebugResources
+> Task :capacitor-device:generateDebugResValues
+> Task :capacitor-device:generateDebugResources
+> Task :capacitor-device:packageDebugResources
+> Task :capacitor-local-notifications:generateDebugResValues
+> Task :capacitor-local-notifications:generateDebugResources
+> Task :capacitor-local-notifications:packageDebugResources
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :capacitor-android:extractDeepLinksDebug
+> Task :app:parseDebugLocalResources
+> Task :capacitor-app:extractDeepLinksDebug
+> Task :capacitor-android:processDebugManifest
+> Task :capacitor-community-keep-awake:extractDeepLinksDebug
+> Task :capacitor-app:processDebugManifest
+> Task :capacitor-cordova-android-plugins:extractDeepLinksDebug
+> Task :capacitor-community-keep-awake:processDebugManifest
+> Task :capacitor-device:extractDeepLinksDebug
+> Task :capacitor-cordova-android-plugins:processDebugManifest
+> Task :capacitor-local-notifications:extractDeepLinksDebug
+> Task :capacitor-device:processDebugManifest
+> Task :capacitor-local-notifications:processDebugManifest
+> Task :capacitor-android:compileDebugLibraryResources
+> Task :capacitor-android:parseDebugLocalResources
+> Task :capacitor-app:compileDebugLibraryResources
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :capacitor-android:generateDebugRFile
+> Task :capacitor-app:parseDebugLocalResources
+> Task :capacitor-community-keep-awake:compileDebugLibraryResources
+> Task :capacitor-community-keep-awake:parseDebugLocalResources
+> Task :capacitor-app:generateDebugRFile
+> Task :capacitor-community-keep-awake:generateDebugRFile
+> Task :app:processDebugManifestForPackage
+> Task :capacitor-cordova-android-plugins:compileDebugLibraryResources
+> Task :capacitor-cordova-android-plugins:parseDebugLocalResources
+> Task :capacitor-device:compileDebugLibraryResources
+> Task :capacitor-device:parseDebugLocalResources
+> Task :capacitor-cordova-android-plugins:generateDebugRFile
+> Task :capacitor-device:generateDebugRFile
+> Task :capacitor-local-notifications:compileDebugLibraryResources
+> Task :capacitor-android:javaPreCompileDebug
+> Task :capacitor-local-notifications:parseDebugLocalResources
+> Task :capacitor-app:javaPreCompileDebug
+> Task :capacitor-android:compileDebugJavaWithJavac FAILED
+> Task :app:mergeDebugResources
+
+[Incubating] Problems report is available at: file:///C:/AI/Git/bell/android/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':capacitor-android:compileDebugJavaWithJavac'.
+> Java compilation initialization error
+    エラー: 21は無効なソース・リリースです
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3s
+85 actionable tasks: 85 executed

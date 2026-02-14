@@ -33,6 +33,7 @@ public class MqttForegroundService extends Service {
     private static final String CHANNEL_ID = "MqttServiceChannel";
     public static final String ACTION_START = "com.smartbell.pro.action.START";
     public static final String ACTION_STOP = "com.smartbell.pro.action.STOP";
+    public static final String ACTION_TRIGGER_CALL = "com.smartbell.pro.ACTION_TRIGGER_CALL";
 
     private MqttAsyncClient mqttClient;
     private String host;
@@ -41,6 +42,7 @@ public class MqttForegroundService extends Service {
     private String clientId;
     private String deviceId;
     private android.os.PowerManager.WakeLock wakeLock;
+    private android.net.wifi.WifiManager.WifiLock wifiLock;
     private final java.util.Map<Integer, String> deliveryTargets = new java.util.HashMap<>();
     private Intent pendingCallIntent;
     private android.net.ConnectivityManager.NetworkCallback networkCallback;
@@ -49,55 +51,60 @@ public class MqttForegroundService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             String action = intent.getAction();
-            if (ACTION_START.equals(action)) {
-                // Acquire WakeLock
-                if (wakeLock == null) {
-                    android.os.PowerManager powerManager = (android.os.PowerManager) getSystemService(
-                            Context.POWER_SERVICE);
-                    wakeLock = powerManager.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK,
-                            "SmartBell:MqttWakeLock");
-                }
-                if (!wakeLock.isHeld()) {
-                    wakeLock.acquire();
-                }
+            if (ACTION_START.equals(action) || ACTION_TRIGGER_CALL.equals(action)) {
+                startForegroundAndLocks();
 
-                host = intent.getStringExtra("host");
-                port = intent.getIntExtra("port", 1883);
-                topic = intent.getStringExtra("topic");
-                clientId = intent.getStringExtra("clientId");
-                deviceId = intent.getStringExtra("deviceId");
+                // Load settings from preferences if they are null (e.g., service restarted by
+                // system)
+                android.content.SharedPreferences prefs = getSharedPreferences("com.smartbell.pro.settings",
+                        Context.MODE_PRIVATE);
+                if (host == null)
+                    host = prefs.getString("mqtt_host", null);
+                if (port == 0)
+                    port = prefs.getInt("mqtt_port", 1883);
+                if (topic == null)
+                    topic = prefs.getString("mqtt_topic", null);
+                if (clientId == null)
+                    clientId = prefs.getString("mqtt_client_id", null);
+                if (deviceId == null)
+                    deviceId = prefs.getString("mqtt_device_id", null);
 
-                createNotificationChannel();
-                Intent notificationIntent = new Intent(this, MainActivity.class);
-                PendingIntent pendingIntent = PendingIntent.getActivity(this,
-                        0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
+                if (ACTION_TRIGGER_CALL.equals(action)) {
+                    // Update from intent if provided
+                    String incomingHost = intent.getStringExtra("host");
+                    if (incomingHost != null)
+                        host = incomingHost;
+                    int incomingPort = intent.getIntExtra("port", 0);
+                    if (incomingPort != 0)
+                        port = incomingPort;
 
-                Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setContentTitle("SmartBell Service")
-                        .setContentText("Listening for incoming calls...")
-                        .setSmallIcon(R.mipmap.ic_launcher)
-                        .setContentIntent(pendingIntent)
-                        .setOngoing(true)
-                        .build();
-
-                startForeground(1, notification);
-                registerNetworkCallback();
-                connectMqtt();
-            } else if ("com.smartbell.pro.ACTION_TRIGGER_CALL".equals(action)) {
-                // ウィジェットからの呼び出し - 既存のMQTT接続を使用してメッセージを送信
-                if (mqttClient != null && mqttClient.isConnected()) {
-                    triggerCall(intent, false); // No initial toast for widget
+                    if (mqttClient != null && mqttClient.isConnected()) {
+                        triggerCall(intent, true);
+                    } else {
+                        Log.d(TAG, "MQTT client not connected, queuing intent and connecting...");
+                        pendingCallIntent = intent;
+                        connectMqtt();
+                    }
                 } else {
-                    Log.d(TAG, "MQTT client not connected, queuing intent and connecting...");
-                    pendingCallIntent = intent;
+                    // Normal START - refresh deviceId and connect
+                    deviceId = intent.getStringExtra("deviceId");
+                    // Save settings for recovery (Boot/AlarmManager)
+                    prefs.edit()
+                            .putString("mqtt_host", host)
+                            .putInt("mqtt_port", port)
+                            .putString("mqtt_topic", topic)
+                            .putString("mqtt_client_id", clientId)
+                            .putString("mqtt_device_id", deviceId)
+                            .apply();
                     connectMqtt();
-                    // Keep quiet for widget triggers unless it takes too long
                 }
-                // 注意: stopSelf()を削除 - サービスを継続して実行
             } else if (ACTION_STOP.equals(action)) {
                 disconnectMqtt();
                 if (wakeLock != null && wakeLock.isHeld()) {
                     wakeLock.release();
+                }
+                if (wifiLock != null && wifiLock.isHeld()) {
+                    wifiLock.release();
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     stopForeground(STOP_FOREGROUND_REMOVE);
@@ -111,6 +118,48 @@ public class MqttForegroundService extends Service {
         return START_STICKY;
     }
 
+    private void startForegroundAndLocks() {
+        // Acquire WakeLock
+        if (wakeLock == null) {
+            android.os.PowerManager powerManager = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+            wakeLock = powerManager.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "SmartBell:MqttWakeLock");
+        }
+        if (!wakeLock.isHeld()) {
+            wakeLock.acquire();
+        }
+
+        // Acquire WiFi WakeLock
+        if (wifiLock == null) {
+            android.net.wifi.WifiManager wifiManager = (android.net.wifi.WifiManager) getApplicationContext()
+                    .getSystemService(Context.WIFI_SERVICE);
+            wifiLock = wifiManager.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                    "SmartBell:WifiLock");
+        }
+        if (!wifiLock.isHeld()) {
+            wifiLock.acquire();
+        }
+
+        createNotificationChannel();
+        scheduleServiceHealthCheck();
+        registerNetworkCallback();
+
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
+                PendingIntent.FLAG_IMMUTABLE);
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("SmartBell Service")
+                .setContentText("着信を待機しています...")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .setOngoing(true)
+                .build();
+
+        startForeground(1, notification);
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -118,9 +167,86 @@ public class MqttForegroundService extends Service {
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
+        if (wifiLock != null && wifiLock.isHeld()) {
+            wifiLock.release();
+        }
+        cancelServiceHealthCheck();
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        Log.d(TAG, "Task removed (App swiped away). Service continues to run.");
+        // We can restart the service or just make sure it's STICKY
+        // onStartCommand returns START_STICKY, so OS will try to keep it.
+        // Also schedule a quick health check to be safe.
+        scheduleServiceHealthCheck();
+        super.onTaskRemoved(rootIntent);
+    }
+
+    private void scheduleServiceHealthCheck() {
+        android.app.AlarmManager alarmManager = (android.app.AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(this, MqttForegroundService.class);
+        intent.setAction(ACTION_START);
+        // Copy current params to recovery intent
+        intent.putExtra("host", host);
+        intent.putExtra("port", port);
+        intent.putExtra("topic", topic);
+        intent.putExtra("clientId", clientId);
+        intent.putExtra("deviceId", deviceId);
+
+        PendingIntent pendingIntent = PendingIntent.getService(this, 100, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        if (alarmManager != null) {
+            // Android 6.0+ (M) Doze mode survival
+            long nextTime = android.os.SystemClock.elapsedRealtime() + 10 * 60 * 1000; // 10 minutes
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setAndAllowWhileIdle(
+                        android.app.AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                        nextTime,
+                        pendingIntent);
+            } else {
+                alarmManager.set(
+                        android.app.AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                        nextTime,
+                        pendingIntent);
+            }
+            Log.d(TAG, "Health check scheduled with setAndAllowWhileIdle (10 mins)");
+        }
+    }
+
+    private void cancelServiceHealthCheck() {
+        android.app.AlarmManager alarmManager = (android.app.AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(this, MqttForegroundService.class);
+        PendingIntent pendingIntent = PendingIntent.getService(this, 100, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        if (alarmManager != null && pendingIntent != null) {
+            alarmManager.cancel(pendingIntent);
+        }
     }
 
     private void connectMqtt() {
+        if (host == null || topic == null || clientId == null) {
+            // Try to load from recovery
+            android.content.SharedPreferences prefs = getSharedPreferences("com.smartbell.pro.settings",
+                    Context.MODE_PRIVATE);
+            if (host == null)
+                host = prefs.getString("mqtt_host", null);
+            if (port == 0)
+                port = prefs.getInt("mqtt_port", 1883);
+            if (topic == null)
+                topic = prefs.getString("mqtt_topic", null);
+            if (clientId == null)
+                clientId = prefs.getString("mqtt_client_id", null);
+            if (deviceId == null)
+                deviceId = prefs.getString("mqtt_device_id", null);
+
+            if (host == null) {
+                Log.e(TAG, "Host is still null after recovery attempt. Cannot connect.");
+                return;
+            }
+        }
+
         try {
             if (mqttClient != null) {
                 if (mqttClient.isConnected()) {
@@ -172,8 +298,8 @@ public class MqttForegroundService extends Service {
             MqttConnectOptions options = new MqttConnectOptions();
             options.setAutomaticReconnect(true);
             options.setCleanSession(false);
-            options.setConnectionTimeout(30);
-            options.setKeepAliveInterval(30);
+            options.setConnectionTimeout(30); // 縮小してタイムアウトを早く検知
+            options.setKeepAliveInterval(30); // 頻度を上げて接続維持
 
             // LWT (Last Will and Testament)
             if (deviceId != null && !deviceId.isEmpty()) {
@@ -446,13 +572,13 @@ public class MqttForegroundService extends Service {
     private static String currentChatChannelId = "ChatChannel_V3";
 
     private void showChatNotification(String sender, String text) {
-        // 更新された通知音設定を読み込む
+        // Load updated ringtone settings
         android.content.SharedPreferences prefs = getSharedPreferences("com.smartbell.pro.settings",
                 Context.MODE_PRIVATE);
         String chatUri = prefs.getString("chat_ringtone_uri", null);
 
-        // Androidの仕様により、一度作成されたチャンネルの音は変更できないため、
-        // 設定が変わっていたら別のIDでチャンネルを再作成する
+        // Due to Android limitations, channel sound cannot be changed once created.
+        // If settings changed, recreate channel with a new ID.
         String newChannelId = "ChatChannel_" + (chatUri != null ? chatUri.hashCode() : "default");
 
         if (!newChannelId.equals(currentChatChannelId)) {
@@ -476,15 +602,15 @@ public class MqttForegroundService extends Service {
                 .setFullScreenIntent(pendingIntent, true);
 
         if (chatUri == null || chatUri.isEmpty()) {
-            // システムデフォルト音を設定
+            // Set system default sound
             builder.setSound(
                     android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION));
-            // 全てのデフォルト（音・振動・ライト）を有効化
+            // Enable all defaults (sound, vibration, lights)
             builder.setDefaults(NotificationCompat.DEFAULT_ALL);
         } else {
-            // カスタム音を設定
+            // Set custom sound
             builder.setSound(Uri.parse(chatUri));
-            // 振動とライトはデフォルトを使用（音は明示的に設定済み）
+            // Use defaults for vibration and lights (sound is explicitly set)
             builder.setDefaults(NotificationCompat.DEFAULT_VIBRATE | NotificationCompat.DEFAULT_LIGHTS);
         }
 
@@ -537,10 +663,12 @@ public class MqttForegroundService extends Service {
             NotificationChannel serviceChannel = new NotificationChannel(
                     CHANNEL_ID,
                     "SmartBell Background Service",
-                    NotificationManager.IMPORTANCE_LOW);
+                    NotificationManager.IMPORTANCE_DEFAULT); // LOWからDEFAULT/HIGHへ
+            serviceChannel.setDescription("SmartBellを常に待機状態にするための常駐サービスです。");
+            serviceChannel.setShowBadge(false);
             manager.createNotificationChannel(serviceChannel);
 
-            // 初回のチャットチャンネル作成 (現在の設定を反映)
+            // Initial chat channel creation (reflecting current settings)
             android.content.SharedPreferences prefs = getSharedPreferences("com.smartbell.pro.settings",
                     Context.MODE_PRIVATE);
             String chatUri = prefs.getString("chat_ringtone_uri", null);

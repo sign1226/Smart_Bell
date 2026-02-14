@@ -179,6 +179,7 @@ public class IncomingCallPlugin extends Plugin {
     public void saveRingtoneSettings(PluginCall call) {
         String uri = call.getString("uri");
         String host = call.getString("host");
+        Integer port = call.getInt("port"); // Retrieve port from call
         Boolean vibrationEnabled = call.getBoolean("vibrationEnabled");
         String vibrationPattern = call.getString("vibrationPattern");
 
@@ -195,6 +196,9 @@ public class IncomingCallPlugin extends Plugin {
         if (host != null) {
             editor.putString("mqtt_host", host);
         }
+        if (port != null) { // Save port to shared preferences
+            editor.putInt("mqtt_port", port);
+        }
         if (vibrationEnabled != null) {
             editor.putBoolean("vibration_enabled", vibrationEnabled);
         }
@@ -203,11 +207,14 @@ public class IncomingCallPlugin extends Plugin {
         }
         editor.apply();
 
-        // Widget用にも保存
+        // Sync to CapacitorStorage for widget and other parts that might use it
         android.content.SharedPreferences.Editor widgetEditor = getContext()
                 .getSharedPreferences("CapacitorStorage", android.content.Context.MODE_PRIVATE).edit();
         if (host != null) {
             widgetEditor.putString("mqtt_host", host);
+        }
+        if (port != null) { // Also save port to CapacitorStorage for consistency
+            widgetEditor.putInt("mqtt_port", port);
         }
         widgetEditor.apply();
 
@@ -258,6 +265,17 @@ public class IncomingCallPlugin extends Plugin {
             call.reject("Host and Port are required");
             return;
         }
+
+        // 重要: 常時起動やウィジェットでの復旧のために設定を永続化する
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("com.smartbell.pro.settings",
+                Context.MODE_PRIVATE);
+        prefs.edit()
+                .putString("mqtt_host", host)
+                .putInt("mqtt_port", port)
+                .putString("mqtt_topic", topic)
+                .putString("mqtt_client_id", clientId)
+                .putString("mqtt_device_id", deviceId)
+                .apply();
 
         Context context = getContext();
         Intent intent = new Intent(context, MqttForegroundService.class);

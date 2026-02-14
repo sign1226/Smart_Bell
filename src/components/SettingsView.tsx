@@ -17,8 +17,14 @@ export const SettingsView: React.FC = () => {
 
     const [vibrationEnabled, setVibrationEnabled] = useState<boolean>(true);
     const [vibrationPattern, setVibrationPattern] = useState<string>('standard');
+    const [isOptimizingBattery, setIsOptimizingBattery] = useState<boolean>(false);
 
     useEffect(() => {
+        // バッテリー最適化の状態チェック
+        IncomingCall.checkPermissions().then(perms => {
+            setIsOptimizingBattery(!perms.batteryOptimization);
+        });
+
         // 着信音一覧の取得
         IncomingCall.getRingtones({ type: 'ringtone' }).then(result => {
             if (result && result.ringtones) {
@@ -51,6 +57,15 @@ export const SettingsView: React.FC = () => {
         if (savedVibPattern) setVibrationPattern(savedVibPattern);
     }, []);
 
+    const handleBatteryRequest = async () => {
+        await IncomingCall.requestIgnoreBatteryOptimization();
+        // リクエスト後に再チェック
+        setTimeout(async () => {
+            const perms = await IncomingCall.checkPermissions();
+            setIsOptimizingBattery(!perms.batteryOptimization);
+        }, 1000);
+    };
+
     // Auto-save effect
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -65,6 +80,7 @@ export const SettingsView: React.FC = () => {
             IncomingCall.saveRingtoneSettings({
                 uri: selectedRingtone,
                 host: localConfig.host,
+                port: localConfig.port,
                 vibrationEnabled,
                 vibrationPattern
             });
@@ -102,6 +118,39 @@ export const SettingsView: React.FC = () => {
                     </div>
                 </button>
             </section>
+
+            {isOptimizingBattery && (
+                <section style={{
+                    marginBottom: '25px',
+                    padding: '15px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid #ef4444',
+                    borderRadius: '12px'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#ef4444', marginBottom: '10px', fontWeight: 'bold' }}>
+                        <Vibrate size={20} />
+                        停止の制限がかかっています
+                    </div>
+                    <p style={{ fontSize: '0.85rem', marginBottom: '12px', opacity: 0.9 }}>
+                        デバイスのシステム設定により、画面オフ時に通信が遮断される可能性があります。「制限なし」に設定することをお勧めします。
+                    </p>
+                    <button
+                        onClick={handleBatteryRequest}
+                        style={{
+                            width: '100%',
+                            padding: '10px',
+                            background: '#ef4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 'bold',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        設定を変更する
+                    </button>
+                </section>
+            )}
 
             <section style={{ marginBottom: '25px' }}>
                 <label style={{ display: 'block', marginBottom: '5px', opacity: 0.7 }}>デバイスID (この端末)</label>

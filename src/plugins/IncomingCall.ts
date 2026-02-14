@@ -7,6 +7,7 @@ export interface IncomingCallPlugin {
     saveRingtoneSettings(options: {
         uri: string,
         host?: string,
+        port?: number,
         vibrationEnabled?: boolean,
         vibrationPattern?: string
     }): Promise<{ success: boolean }>;
