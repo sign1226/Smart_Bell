@@ -24,7 +24,6 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     const handleOpenChat = () => {
-      console.log('Open chat trigger received');
       setActiveTab('chat');
     };
     window.addEventListener('openChat', handleOpenChat);
