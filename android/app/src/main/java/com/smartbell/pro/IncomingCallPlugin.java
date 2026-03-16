@@ -320,9 +320,50 @@ public class IncomingCallPlugin extends Plugin {
     public void syncContacts(PluginCall call) {
         String contactsJson = call.getString("contacts");
         if (contactsJson != null) {
-            android.content.SharedPreferences prefs = getContext().getSharedPreferences("WidgetPrefs",
+            Context context = getContext();
+            android.content.SharedPreferences prefs = context.getSharedPreferences("WidgetPrefs",
                     android.content.Context.MODE_PRIVATE);
             prefs.edit().putString("contacts_list", contactsJson).apply();
+
+            // Dynamic Shortcuts Implementation
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N_MR1) {
+                try {
+                    android.content.pm.ShortcutManager shortcutManager = context
+                            .getSystemService(android.content.pm.ShortcutManager.class);
+                    if (shortcutManager != null) {
+                        org.json.JSONArray contactsArray = new org.json.JSONArray(contactsJson);
+                        java.util.List<android.content.pm.ShortcutInfo> dynamicShortcuts = new java.util.ArrayList<>();
+
+                        // Limit to 3 dynamic shortcuts to leave room for static one
+                        int limit = Math.min(contactsArray.length(), 3);
+                        for (int i = 0; i < limit; i++) {
+                            org.json.JSONObject contact = contactsArray.getJSONObject(i);
+                            String id = contact.getString("id");
+                            String name = contact.getString("name");
+
+                            Intent intent = new Intent(context, MqttForegroundService.class);
+                            intent.setAction(MqttForegroundService.ACTION_CALL);
+                            intent.putExtra("targetId", id);
+                            intent.putExtra("targetName", name);
+
+                            android.content.pm.ShortcutInfo shortcut = new android.content.pm.ShortcutInfo.Builder(context,
+                                    "call_contact_" + id)
+                                    .setShortLabel(name + "を呼ぶ")
+                                    .setLongLabel("Smart Bellで" + name + "を呼び出す")
+                                    .setIcon(android.graphics.drawable.Icon.createWithResource(context,
+                                            R.drawable.ic_bell_white))
+                                    .setIntent(intent)
+                                    .build();
+                            dynamicShortcuts.add(shortcut);
+                        }
+                        shortcutManager.setDynamicShortcuts(dynamicShortcuts);
+                        android.util.Log.d("IncomingCallPlugin", "Dynamic shortcuts updated: " + dynamicShortcuts.size());
+                    }
+                } catch (Exception e) {
+                    android.util.Log.e("IncomingCallPlugin", "Failed to update dynamic shortcuts", e);
+                }
+            }
+
             call.resolve();
         } else {
             call.reject("Contacts data missing");

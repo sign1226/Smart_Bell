@@ -23,6 +23,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+
         </activity>
 
         <!-- 全画面着信用アクティビティ -->
@@ -33,7 +37,7 @@
             android:launchMode="singleInstance"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
-            android:exported="false">
+            android:exported="true">
         </activity>
 
         <provider
@@ -92,9 +96,13 @@
         <service
             android:name=".MqttForegroundService"
             android:enabled="true"
-            android:exported="false"
+            android:exported="true"
             android:stopWithTask="false"
-            android:foregroundServiceType="remoteMessaging" />
+            android:foregroundServiceType="remoteMessaging">
+            <intent-filter>
+                <action android:name="com.smartbell.pro.action.CALL" />
+            </intent-filter>
+        </service>
     </application>
 
     <!-- Permissions -->

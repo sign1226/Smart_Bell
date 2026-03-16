@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="call_everyone"
+        android:enabled="true"
+        android:icon="@drawable/ic_bell_white"
+        android:shortcutShortLabel="@string/shortcut_call_everyone"
+        android:shortcutLongLabel="@string/shortcut_call_everyone_long">
+        <intent
+            android:action="com.smartbell.pro.action.CALL"
+            android:targetPackage="com.smartbell.pro"
+            android:targetClass="com.smartbell.pro.MqttForegroundService" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>

@@ -34,6 +34,7 @@ public class MqttForegroundService extends Service {
     public static final String ACTION_START = "com.smartbell.pro.action.START";
     public static final String ACTION_STOP = "com.smartbell.pro.action.STOP";
     public static final String ACTION_TRIGGER_CALL = "com.smartbell.pro.ACTION_TRIGGER_CALL";
+    public static final String ACTION_CALL = "com.smartbell.pro.action.CALL";
 
     private MqttAsyncClient mqttClient;
     private String host;
@@ -51,7 +52,7 @@ public class MqttForegroundService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             String action = intent.getAction();
-            if (ACTION_START.equals(action) || ACTION_TRIGGER_CALL.equals(action)) {
+            if (ACTION_START.equals(action) || ACTION_TRIGGER_CALL.equals(action) || ACTION_CALL.equals(action)) {
                 startForegroundAndLocks();
 
                 // Load settings from preferences if they are null (e.g., service restarted by
@@ -97,6 +98,17 @@ public class MqttForegroundService extends Service {
                             .putString("mqtt_device_id", deviceId)
                             .apply();
                     connectMqtt();
+                }
+
+                if (ACTION_CALL.equals(action)) {
+                    Log.d(TAG, "Direct CALL action received from external intent");
+                    if (mqttClient != null && mqttClient.isConnected()) {
+                        triggerCall(intent, true);
+                    } else {
+                        Log.d(TAG, "MQTT not connected for direct call, queuing...");
+                        pendingCallIntent = intent;
+                        connectMqtt();
+                    }
                 }
             } else if (ACTION_STOP.equals(action)) {
                 disconnectMqtt();
@@ -493,6 +505,14 @@ public class MqttForegroundService extends Service {
                 }
 
                 // Launch Activity
+                // Check timestamp for old calls
+                long timestamp = payload.optLong("timestamp", 0);
+                long now = System.currentTimeMillis();
+                if (timestamp > 0 && (now - timestamp) > 60000) {
+                    Log.d(TAG, "Ignoring old call request (diff: " + (now - timestamp) + "ms)");
+                    return;
+                }
+
                 Intent intent = new Intent(this, IncomingCallActivity.class);
                 intent.putExtra("caller_name", caller);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP

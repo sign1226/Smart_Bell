@@ -4,4 +4,6 @@
     <string name="title_activity_main">Smart Bell</string>
     <string name="package_name">com.smartbell.pro</string>
     <string name="custom_url_scheme">com.smartbell.pro</string>
+    <string name="shortcut_call_everyone">全員を呼ぶ</string>
+    <string name="shortcut_call_everyone_long">Smart Bellで全員を呼び出す</string>
 </resources>

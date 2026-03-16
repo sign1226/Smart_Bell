@@ -101,6 +101,15 @@ export const useMqtt = () => {
                             // 自分自身からの送信は無視 (fromId check)
                             if (payload.fromId === deviceId) return;
 
+                            // タイムスタンプの検証 (古いメッセージは無視)
+                            const now = Date.now();
+                            const msgTime = payload.timestamp || 0;
+                            const diff = now - msgTime;
+                            if (diff > 60000) { // 60秒以上経過したメッセージは無視
+                                console.warn(`Ignoring old call message (diff: ${diff}ms)`);
+                                return;
+                            }
+
                             addHistory(payload);
 
                             // Send Ack back
