@@ -40,6 +40,18 @@
             android:exported="true">
         </activity>
 
+        <!-- ショートカット作成用Activity -->
+        <activity
+            android:name=".ShortcutActivity"
+            android:label="呼び出しショートカット"
+            android:theme="@style/Theme.AppCompat.Light.Dialog"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.CREATE_SHORTCUT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
