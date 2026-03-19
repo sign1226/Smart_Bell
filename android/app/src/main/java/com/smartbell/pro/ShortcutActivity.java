@@ -59,10 +59,12 @@ public class ShortcutActivity extends AppCompatActivity {
 
     private void createShortcut(String label, String targetId) {
         // ショートカットがタップされた時に起動するインテント
-        Intent shortcutIntent = new Intent(this, MqttForegroundService.class);
-        shortcutIntent.setAction(MqttForegroundService.ACTION_CALL);
+        // 直接Serviceを起動せず、MainActivityを経由するように変更
+        Intent shortcutIntent = new Intent(this, MainActivity.class);
+        shortcutIntent.setAction("com.smartbell.pro.action.CALL");
         shortcutIntent.putExtra("targetId", targetId);
         shortcutIntent.putExtra("targetName", label.replace("を呼ぶ", ""));
+        shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
         // OSに返すショートカット情報の設定
         Intent intent = new Intent();

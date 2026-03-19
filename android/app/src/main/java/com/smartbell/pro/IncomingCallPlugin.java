@@ -341,10 +341,12 @@ public class IncomingCallPlugin extends Plugin {
                             String id = contact.getString("id");
                             String name = contact.getString("name");
 
-                            Intent intent = new Intent(context, MqttForegroundService.class);
-                            intent.setAction(MqttForegroundService.ACTION_CALL);
+                            // MqttForegroundServiceを直接起動せず、MainActivityを経由する
+                            Intent intent = new Intent(context, MainActivity.class);
+                            intent.setAction("com.smartbell.pro.action.CALL");
                             intent.putExtra("targetId", id);
                             intent.putExtra("targetName", name);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
                             android.content.pm.ShortcutInfo shortcut = new android.content.pm.ShortcutInfo.Builder(context,
                                     "call_contact_" + id)

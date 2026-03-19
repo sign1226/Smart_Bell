@@ -48,7 +48,7 @@ public class MainActivity extends BridgeActivity {
         if (intent == null)
             return;
         String action = intent.getAction();
-        if ("com.smartbell.pro.ACTION_WIDGET_CALL".equals(action)) {
+        if ("com.smartbell.pro.ACTION_WIDGET_CALL".equals(action) || "com.smartbell.pro.action.CALL".equals(action)) {
             String targetId = intent.getStringExtra("targetId");
             String targetName = intent.getStringExtra("targetName");
             if (targetId == null)
@@ -67,8 +67,10 @@ public class MainActivity extends BridgeActivity {
                 pendingTargetId = targetId;
                 pendingTargetName = targetName;
             }
-        } else if ("com.smartbell.pro.ACTION_OPEN_CHAT".equals(action)) {
-            bridge.getWebView().evaluateJavascript("window.dispatchEvent(new CustomEvent('openChat'))", null);
+        } else if ("com.smartbell.pro.ACTION_OPEN_CHAT".equals(action) || "com.smartbell.pro.ACTION_OPEN_CHAT".equals(action)) {
+            if (bridge != null && bridge.getWebView() != null) {
+                bridge.getWebView().evaluateJavascript("window.dispatchEvent(new CustomEvent('openChat'))", null);
+            }
         }
     }
 }

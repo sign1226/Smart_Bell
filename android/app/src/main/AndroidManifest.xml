@@ -23,6 +23,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- 外部からの呼び出しインテント -->
+            <intent-filter>
+                <action android:name="com.smartbell.pro.action.CALL" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- 通知からのチャット移動インテント -->
+            <intent-filter>
+                <action android:name="com.smartbell.pro.ACTION_OPEN_CHAT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
@@ -43,7 +55,7 @@
         <!-- ショートカット作成用Activity -->
         <activity
             android:name=".ShortcutActivity"
-            android:label="呼び出しショートカット"
+            android:label="Smart Bell 呼び出し作成"
             android:theme="@style/Theme.AppCompat.Light.Dialog"
             android:exported="true">
             <intent-filter>
