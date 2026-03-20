@@ -17,6 +17,7 @@ public class CallReceiver extends BroadcastReceiver {
 
     public static final String ACTION_SHOW_CALL = "com.smartbell.pro.SHOW_CALL";
     public static final String ACTION_TRIGGER_CALL = "com.smartbell.pro.ACTION_TRIGGER_CALL";
+    public static final String ACTION_STOP_RINGTONE = "com.smartbell.pro.ACTION_STOP_RINGTONE";
     public static final String CHANNEL_ID = "bell_calls";
 
     @Override
@@ -25,7 +26,24 @@ public class CallReceiver extends BroadcastReceiver {
             showFullScreenNotification(context);
         } else if (ACTION_TRIGGER_CALL.equals(intent.getAction())) {
             triggerCall(context);
+        } else if (ACTION_STOP_RINGTONE.equals(intent.getAction())) {
+            stopRingtone(context);
         }
+    }
+
+    private void stopRingtone(Context context) {
+        Log.d("CallReceiver", "Stopping ringtone from notification");
+        RingtoneUtils ringtoneUtils = new RingtoneUtils(context);
+        ringtoneUtils.stopRingtone();
+        
+        NotificationManager notificationManager = (NotificationManager) context
+                .getSystemService(Context.NOTIFICATION_SERVICE);
+        if (notificationManager != null) {
+            notificationManager.cancel(1); // 全画面通知（ボタン付き）のID
+        }
+        
+        // Activityが開いている可能性もあるため、ブロードキャストで通知するなどの手もあるが、
+        // RingtoneUtils.stopRingtone が static メンバを操作するのでこれで止まるはず
     }
 
     private void triggerCall(Context context) {
@@ -63,6 +81,18 @@ public class CallReceiver extends BroadcastReceiver {
                 fullScreenIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
+        // 停止ボタン用インテント
+        Intent stopIntent = new Intent(context, CallReceiver.class);
+        stopIntent.setAction(ACTION_STOP_RINGTONE);
+        PendingIntent stopPendingIntent = PendingIntent.getBroadcast(
+                context, 1, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        // 応答ボタン用インテント（Activityを開く）
+        Intent answerIntent = new Intent(context, IncomingCallActivity.class);
+        answerIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent answerPendingIntent = PendingIntent.getActivity(
+                context, 2, answerIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
         // 通知の作成
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
@@ -73,7 +103,9 @@ public class CallReceiver extends BroadcastReceiver {
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setAutoCancel(true)
                 .setFullScreenIntent(fullScreenPendingIntent, true)
-                .setContentIntent(fullScreenPendingIntent);
+                .setContentIntent(fullScreenPendingIntent)
+                .addAction(R.drawable.ic_bell_white, "停止", stopPendingIntent)
+                .addAction(R.drawable.ic_bell_white, "応答", answerPendingIntent);
 
         // 通知を表示
         notificationManager.notify(1, builder.build());

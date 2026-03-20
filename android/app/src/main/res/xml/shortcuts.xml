@@ -9,7 +9,7 @@
         <intent
             android:action="com.smartbell.pro.action.CALL"
             android:targetPackage="com.smartbell.pro"
-            android:targetClass="com.smartbell.pro.MainActivity" />
+            android:targetClass="com.smartbell.pro.ShortcutHandlerActivity" />
         <categories android:name="android.shortcut.conversation" />
     </shortcut>
 </shortcuts>

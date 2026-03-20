@@ -16,6 +16,7 @@
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
+            android:taskAffinity="com.smartbell.pro.main"
             android:exported="true">
 
             <intent-filter>
@@ -23,11 +24,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- 外部からの呼び出しインテント -->
-            <intent-filter>
-                <action android:name="com.smartbell.pro.action.CALL" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
+            <!-- 通知からのチャット移動インテント -->
 
             <!-- 通知からのチャット移動インテント -->
             <intent-filter>
@@ -60,6 +57,21 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- ショートカット中継用透明Activity -->
+        <activity
+            android:name=".ShortcutHandlerActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:launchMode="singleInstance"
+            android:taskAffinity="com.smartbell.pro.shortcut"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.smartbell.pro.action.CALL" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -104,6 +116,7 @@
             <intent-filter>
                 <action android:name="com.smartbell.pro.SHOW_CALL" />
                 <action android:name="com.smartbell.pro.ACTION_TRIGGER_CALL" />
+                <action android:name="com.smartbell.pro.ACTION_STOP_RINGTONE" />
             </intent-filter>
         </receiver>
 

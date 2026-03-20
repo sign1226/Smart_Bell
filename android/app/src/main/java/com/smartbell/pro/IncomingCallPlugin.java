@@ -334,6 +334,11 @@ public class IncomingCallPlugin extends Plugin {
                         org.json.JSONArray contactsArray = new org.json.JSONArray(contactsJson);
                         java.util.List<android.content.pm.ShortcutInfo> dynamicShortcuts = new java.util.ArrayList<>();
 
+                        // Load MQTT settings for shortcuts
+                        android.content.SharedPreferences settings = context.getSharedPreferences("com.smartbell.pro.settings", Context.MODE_PRIVATE);
+                        String host = settings.getString("mqtt_host", null);
+                        int port = settings.getInt("mqtt_port", 1883);
+
                         // Limit to 3 dynamic shortcuts to leave room for static one
                         int limit = Math.min(contactsArray.length(), 3);
                         for (int i = 0; i < limit; i++) {
@@ -341,11 +346,13 @@ public class IncomingCallPlugin extends Plugin {
                             String id = contact.getString("id");
                             String name = contact.getString("name");
 
-                            // MqttForegroundServiceを直接起動せず、MainActivityを経由する
-                            Intent intent = new Intent(context, MainActivity.class);
-                            intent.setAction("com.smartbell.pro.action.CALL");
+                            // Trigger ShortcutHandlerActivity
+                            Intent intent = new Intent(context, ShortcutHandlerActivity.class);
+                            intent.setAction(MqttForegroundService.ACTION_CALL);
                             intent.putExtra("targetId", id);
                             intent.putExtra("targetName", name);
+                            intent.putExtra("host", host);
+                            intent.putExtra("port", port);
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
                             android.content.pm.ShortcutInfo shortcut = new android.content.pm.ShortcutInfo.Builder(context,
@@ -393,16 +400,11 @@ public class IncomingCallPlugin extends Plugin {
 
     @PluginMethod
     public void getPendingWidgetCall(PluginCall call) {
-        JSObject ret = new JSObject();
-        ret.put("targetId", MainActivity.pendingTargetId);
-        ret.put("targetName", MainActivity.pendingTargetName);
-        call.resolve(ret);
+        call.resolve(new JSObject());
     }
 
     @PluginMethod
     public void clearPendingWidgetCall(PluginCall call) {
-        MainActivity.pendingTargetId = null;
-        MainActivity.pendingTargetName = null;
         call.resolve();
     }
 }

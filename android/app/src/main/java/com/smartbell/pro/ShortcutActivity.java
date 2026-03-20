@@ -58,17 +58,24 @@ public class ShortcutActivity extends AppCompatActivity {
     }
 
     private void createShortcut(String label, String targetId) {
-        // ショートカットがタップされた時に起動するインテント
-        // 直接Serviceを起動せず、MainActivityを経由するように変更
-        Intent shortcutIntent = new Intent(this, MainActivity.class);
-        shortcutIntent.setAction("com.smartbell.pro.action.CALL");
-        shortcutIntent.putExtra("targetId", targetId);
-        shortcutIntent.putExtra("targetName", label.replace("を呼ぶ", ""));
-        shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        // Load MQTT settings from SharedPreferences to pass to service
+        android.content.SharedPreferences settings = getSharedPreferences("com.smartbell.pro.settings", Context.MODE_PRIVATE);
+        String host = settings.getString("mqtt_host", null);
+        int port = settings.getInt("mqtt_port", 1883);
+
+        // Shortcut that triggers ShortcutHandlerActivity (Transparent)
+        // This avoids the "App not installed" error while performing background work
+        Intent targetIntent = new Intent(this, ShortcutHandlerActivity.class);
+        targetIntent.setAction(MqttForegroundService.ACTION_CALL);
+        targetIntent.putExtra("targetId", targetId);
+        targetIntent.putExtra("targetName", label.replace("を呼ぶ", ""));
+        targetIntent.putExtra("host", host);
+        targetIntent.putExtra("port", port);
+        targetIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
         // OSに返すショートカット情報の設定
         Intent intent = new Intent();
-        intent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
+        intent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, targetIntent);
         intent.putExtra(Intent.EXTRA_SHORTCUT_NAME, label);
         intent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, 
             Intent.ShortcutIconResource.fromContext(this, R.drawable.ic_bell_white));

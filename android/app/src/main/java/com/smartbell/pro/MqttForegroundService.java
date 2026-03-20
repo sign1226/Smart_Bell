@@ -102,8 +102,16 @@ public class MqttForegroundService extends Service {
 
                 if (ACTION_CALL.equals(action)) {
                     Log.d(TAG, "Direct CALL action received from external intent");
+                    // Update from intent if provided (same as TRIGGER_CALL)
+                    String incomingHost = intent.getStringExtra("host");
+                    if (incomingHost != null)
+                        host = incomingHost;
+                    int incomingPort = intent.getIntExtra("port", 0);
+                    if (incomingPort != 0)
+                        port = incomingPort;
+
                     if (mqttClient != null && mqttClient.isConnected()) {
-                        triggerCall(intent, true);
+                        triggerCall(intent, false); // Shortcut shows toast itself
                     } else {
                         Log.d(TAG, "MQTT not connected for direct call, queuing...");
                         pendingCallIntent = intent;
@@ -155,7 +163,8 @@ public class MqttForegroundService extends Service {
         scheduleServiceHealthCheck();
         registerNetworkCallback();
 
-        Intent notificationIntent = new Intent(this, MainActivity.class);
+        // No explicit intent to open MainActivity from the foreground service notification
+        Intent notificationIntent = new Intent(); 
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
                 PendingIntent.FLAG_IMMUTABLE);
 
@@ -164,7 +173,7 @@ public class MqttForegroundService extends Service {
                 .setContentText("着信を待機しています...")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(pendingIntent)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
                 .setOngoing(true)
                 .build();
@@ -284,7 +293,7 @@ public class MqttForegroundService extends Service {
                             subscribeAll();
                             if (pendingCallIntent != null) {
                                 Log.d(TAG, "Processing pending intent after reconnect");
-                                triggerCall(pendingCallIntent, false);
+                                triggerCall(pendingCallIntent, true);
                                 pendingCallIntent = null;
                             }
                         }
@@ -330,7 +339,7 @@ public class MqttForegroundService extends Service {
                     publishOnlineStatus();
                     subscribeAll();
                     if (pendingCallIntent != null) {
-                        triggerCall(pendingCallIntent, false); // Silent for widget retry
+                        triggerCall(pendingCallIntent, true); // Show toast for widget/shortcut retry
                         pendingCallIntent = null;
                     }
                 }
@@ -367,15 +376,7 @@ public class MqttForegroundService extends Service {
             payload.put("cmd", "call");
             payload.put("from", clientId != null ? clientId : "デバイス");
             payload.put("fromId", deviceId);
-            if (targetId != null && !targetId.isEmpty()) {
-                mqttClient.publish("smartbell/call/" + targetId, payload.toString().getBytes(), 1, false);
-            } else {
-                mqttClient.publish(topic, payload.toString().getBytes(), 1, false);
-            }
-            Log.d(TAG, "Call publish initiated.");
-
             if (showCallingToast) {
-                // Immediate Feedback: Calling...
                 android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
                 final String finalTargetName = targetName;
                 mainHandler.post(() -> {
@@ -384,6 +385,34 @@ public class MqttForegroundService extends Service {
                             .show();
                 });
             }
+
+            org.eclipse.paho.client.mqttv3.IMqttActionListener publishListener = new org.eclipse.paho.client.mqttv3.IMqttActionListener() {
+                @Override
+                public void onSuccess(org.eclipse.paho.client.mqttv3.IMqttToken asyncActionToken) {
+                    // サーバー送信成功時のトーストは不要（Ackで出すため）、またはデバッグ用。
+                    // ユーザーの要望に合わせ、ウィジェット同様に「届いた」時のみ出すように抑制するか、
+                    // 送信完了だけ短く出す。
+                    Log.d(TAG, "MQTT Publish Success");
+                }
+
+                @Override
+                public void onFailure(org.eclipse.paho.client.mqttv3.IMqttToken asyncActionToken, Throwable exception) {
+                    if (showCallingToast) {
+                        android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+                        mainHandler.post(() -> {
+                            android.widget.Toast.makeText(getApplicationContext(),
+                                "送信に失敗しました", android.widget.Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                }
+            };
+
+            if (targetId != null && !targetId.isEmpty()) {
+                mqttClient.publish("smartbell/call/" + targetId, payload.toString().getBytes(), 1, false, null, publishListener);
+            } else {
+                mqttClient.publish(topic, payload.toString().getBytes(), 1, false, null, publishListener);
+            }
+            Log.d(TAG, "Call publish initiated.");
         } catch (Exception e) {
             Log.e(TAG, "Failed to send call", e);
             android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -495,7 +524,7 @@ public class MqttForegroundService extends Service {
                         JSONObject ackPayload = new JSONObject();
                         ackPayload.put("cmd", "ack");
                         ackPayload.put("forCmd", "call");
-                        ackPayload.put("from", clientId);
+                        ackPayload.put("from", (clientId != null && !clientId.isEmpty()) ? clientId : "相手");
                         ackPayload.put("fromId", deviceId);
                         ackPayload.put("timestamp", System.currentTimeMillis());
                         mqttClient.publish("smartbell/call/" + callerId, ackPayload.toString().getBytes(), 1, false);
@@ -580,25 +609,23 @@ public class MqttForegroundService extends Service {
     }
 
     private void showCallDeliveredNotification(String targetName) {
-        // Show Toast for immediate feedback even in background
+        // Show Toast for immediate feedback (May be blocked in background by Android 12+)
         android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
         mainHandler.post(() -> android.widget.Toast
-                .makeText(this, targetName + " に着信中", android.widget.Toast.LENGTH_SHORT).show());
+                .makeText(this, "✅ " + targetName + " が着信しました", android.widget.Toast.LENGTH_SHORT).show());
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager manager = getSystemService(NotificationManager.class);
-            // Reuse service channel or create a new high priority one for feedback
-            // Using service channel for now but with higher visibility if possible, or just
-            // a toast?
-            // Background service can't show Toast easily on Android 12+.
-            // Notification is better.
-
+            
+            // 重要度を最高(MAX)にして、ヘッドアップ通知として表示されるようにする
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setContentTitle("呼び出し完了")
-                    .setContentText(targetName + " に呼び出しが届きました")
+                    .setContentTitle("着信完了")
+                    .setContentText("✅ " + targetName + " が着信しました")
                     .setSmallIcon(R.mipmap.ic_launcher)
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setAutoCancel(true);
+                    .setPriority(NotificationCompat.PRIORITY_MAX) // ヘッドアップ通知にするためMAX
+                    .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                    .setAutoCancel(true)
+                    .setDefaults(Notification.DEFAULT_ALL); // 音や振動を伴わせる
 
             manager.notify(3, builder.build()); // ID 3 for ack notifications
         }

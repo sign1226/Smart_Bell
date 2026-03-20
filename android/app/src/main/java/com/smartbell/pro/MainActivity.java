@@ -10,8 +10,6 @@ import android.content.Context;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
-    public static String pendingTargetId = null;
-    public static String pendingTargetName = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -48,26 +46,7 @@ public class MainActivity extends BridgeActivity {
         if (intent == null)
             return;
         String action = intent.getAction();
-        if ("com.smartbell.pro.ACTION_WIDGET_CALL".equals(action) || "com.smartbell.pro.action.CALL".equals(action)) {
-            String targetId = intent.getStringExtra("targetId");
-            String targetName = intent.getStringExtra("targetName");
-            if (targetId == null)
-                targetId = "";
-            if (targetName == null)
-                targetName = "全員";
-
-            String jsFunc = String.format(
-                    "window.dispatchEvent(new CustomEvent('widgetCall', { detail: { targetId: '%s', targetName: '%s' } }))",
-                    targetId, targetName);
-
-            if (bridge != null && bridge.getWebView() != null) {
-                bridge.getWebView().evaluateJavascript(jsFunc, null);
-            } else {
-                // WebView not ready, store for later
-                pendingTargetId = targetId;
-                pendingTargetName = targetName;
-            }
-        } else if ("com.smartbell.pro.ACTION_OPEN_CHAT".equals(action) || "com.smartbell.pro.ACTION_OPEN_CHAT".equals(action)) {
+        if ("com.smartbell.pro.ACTION_OPEN_CHAT".equals(action)) {
             if (bridge != null && bridge.getWebView() != null) {
                 bridge.getWebView().evaluateJavascript("window.dispatchEvent(new CustomEvent('openChat'))", null);
             }
