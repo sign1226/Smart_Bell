@@ -628,34 +628,40 @@ public class MqttForegroundService extends Service {
     }
 
     private void showCallDeliveredNotification(String targetName) {
-        // Show Toast for immediate feedback (May be blocked in background by Android 12+)
+        // フォアグラウンドサービス通知（ID=1）の本文を更新する。
+        // これはAndroid 12+のバックグラウンド制限を受けない最も確実な方法。
         android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-        mainHandler.post(() -> android.widget.Toast
-                .makeText(this, "✅ " + targetName + " が着信しました", android.widget.Toast.LENGTH_SHORT).show());
+        mainHandler.post(() -> {
+            android.widget.Toast.makeText(getApplicationContext(),
+                    "✅ " + targetName + " が着信しました", android.widget.Toast.LENGTH_SHORT).show();
+        });
 
+        // フォアグラウンドサービス通知本文を「着信しました」に更新する（最も確実な表示方法）
+        updateForegroundNotification("✅ " + targetName + " が着信しました");
+
+        // 5秒後に元の待機メッセージに戻す
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            updateForegroundNotification("着信を待機しています...");
+        }, 5000);
+
+        Log.d(TAG, "showCallDeliveredNotification called for: " + targetName);
+    }
+
+    private void updateForegroundNotification(String contentText) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager == null) return;
 
-            // Ack用の高優先度チャンネル（未作成なら作成）
-            if (manager.getNotificationChannel(CHANNEL_ID_ACK) == null) {
-                NotificationChannel ackChannel = new NotificationChannel(
-                        CHANNEL_ID_ACK,
-                        "SmartBell 着信確認",
-                        NotificationManager.IMPORTANCE_HIGH); // ヘッドアップ表示に必須
-                ackChannel.setDescription("相手の着信を確認したときの通知");
-                manager.createNotificationChannel(ackChannel);
-            }
-
-            // CHANNEL_ID_ACK（IMPORTANCE_HIGH）で通知を作成 → ヘッドアップで確実に表示
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID_ACK)
-                    .setContentTitle("着信完了")
-                    .setContentText("✅ " + targetName + " が着信しました")
+            Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setContentTitle("SmartBell Service")
+                    .setContentText(contentText)
                     .setSmallIcon(R.mipmap.ic_launcher)
-                    .setPriority(NotificationCompat.PRIORITY_MAX)
-                    .setCategory(NotificationCompat.CATEGORY_STATUS)
-                    .setAutoCancel(true);
-
-            manager.notify(3, builder.build());
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                    .setOngoing(true)
+                    .build();
+            // ID=1 はフォアグラウンドサービス通知と同じIDで上書き更新
+            manager.notify(1, notification);
         }
     }
 
