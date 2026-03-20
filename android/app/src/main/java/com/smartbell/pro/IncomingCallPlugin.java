@@ -407,4 +407,13 @@ public class IncomingCallPlugin extends Plugin {
     public void clearPendingWidgetCall(PluginCall call) {
         call.resolve();
     }
+
+    @PluginMethod
+    public void showToast(PluginCall call) {
+        String message = call.getString("message", "");
+        android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+        final String finalMessage = message;
+        mainHandler.post(() -> android.widget.Toast.makeText(getContext(), finalMessage, android.widget.Toast.LENGTH_SHORT).show());
+        call.resolve();
+    }
 }

@@ -139,6 +139,15 @@ export const useMqtt = () => {
                             if (payload.forCmd === 'call') {
                                 console.log("Call Ack received from", payload.from);
                                 setCallStatus('delivered');
+
+                                // トーストでフィードバック（アプリ画面の有無に関わらず確実に表示）
+                                const fromName = payload.from || '相手';
+                                import('../plugins/IncomingCall').then(({ default: IncomingCall }) => {
+                                    IncomingCall.showToast({ message: `✅ ${fromName} が着信しました` }).catch(() => {
+                                        // Plugin method may not exist on older builds, ignore error
+                                    });
+                                });
+
                                 // Reset status after 5 seconds
                                 setTimeout(() => {
                                     setCallStatus(prev => prev === 'delivered' ? 'idle' : prev);

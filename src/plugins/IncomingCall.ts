@@ -30,6 +30,7 @@ export interface IncomingCallPlugin {
     getPendingChatMessages(): Promise<{ messages: any[] }>;
     getPendingWidgetCall(): Promise<{ targetId: string | null; targetName: string | null }>;
     clearPendingWidgetCall(): Promise<void>;
+    showToast(options: { message: string }): Promise<void>;
 }
 
 const IncomingCall = registerPlugin<IncomingCallPlugin>('IncomingCall');
