@@ -636,6 +636,16 @@ public class MqttForegroundService extends Service {
                     "✅ " + targetName + " が着信しました", android.widget.Toast.LENGTH_SHORT).show();
         });
 
+        // バイブレーションで通知（VIBRATE権限は自動付与、バックグラウンドでも確実に動作）
+        android.os.Vibrator vibrator = (android.os.Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        if (vibrator != null && vibrator.hasVibrator()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(android.os.VibrationEffect.createOneShot(300, android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                vibrator.vibrate(300);
+            }
+        }
+
         // フォアグラウンドサービス通知本文を「着信しました」に更新する（最も確実な表示方法）
         updateForegroundNotification("✅ " + targetName + " が着信しました");
 
