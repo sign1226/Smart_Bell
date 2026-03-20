@@ -35,6 +35,7 @@ public class MqttForegroundService extends Service {
     public static final String ACTION_STOP = "com.smartbell.pro.action.STOP";
     public static final String ACTION_TRIGGER_CALL = "com.smartbell.pro.ACTION_TRIGGER_CALL";
     public static final String ACTION_CALL = "com.smartbell.pro.action.CALL";
+    public static final String CHANNEL_ID_ACK = "bell_ack"; // Ack通知用 IMPORTANCE_HIGH チャンネル
 
     private MqttAsyncClient mqttClient;
     private String host;
@@ -616,18 +617,27 @@ public class MqttForegroundService extends Service {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager manager = getSystemService(NotificationManager.class);
-            
-            // 重要度を最高(MAX)にして、ヘッドアップ通知として表示されるようにする
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+
+            // Ack用の高優先度チャンネル（未作成なら作成）
+            if (manager.getNotificationChannel(CHANNEL_ID_ACK) == null) {
+                NotificationChannel ackChannel = new NotificationChannel(
+                        CHANNEL_ID_ACK,
+                        "SmartBell 着信確認",
+                        NotificationManager.IMPORTANCE_HIGH); // ヘッドアップ表示に必須
+                ackChannel.setDescription("相手の着信を確認したときの通知");
+                manager.createNotificationChannel(ackChannel);
+            }
+
+            // CHANNEL_ID_ACK（IMPORTANCE_HIGH）で通知を作成 → ヘッドアップで確実に表示
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID_ACK)
                     .setContentTitle("着信完了")
                     .setContentText("✅ " + targetName + " が着信しました")
                     .setSmallIcon(R.mipmap.ic_launcher)
-                    .setPriority(NotificationCompat.PRIORITY_MAX) // ヘッドアップ通知にするためMAX
-                    .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-                    .setAutoCancel(true)
-                    .setDefaults(Notification.DEFAULT_ALL); // 音や振動を伴わせる
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
+                    .setCategory(NotificationCompat.CATEGORY_STATUS)
+                    .setAutoCancel(true);
 
-            manager.notify(3, builder.build()); // ID 3 for ack notifications
+            manager.notify(3, builder.build());
         }
     }
 
