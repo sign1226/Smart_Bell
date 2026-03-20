@@ -432,6 +432,17 @@ public class MqttForegroundService extends Service {
                 mqttClient.publish(topic, payload.toString().getBytes(), 1, false, null, publishListener);
             }
             Log.d(TAG, "Call publish initiated.");
+
+            // デバッグ: 送信後に通知テキストを更新し、Ack到着 or タイムアウトを可視化
+            updateForegroundNotification("呼出中…Ack待機中");
+            final android.os.Handler ackTimeoutHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+            ackTimeoutHandler.postDelayed(() -> {
+                // 5秒たってもAckが届いていなければ通知をタイムアウトに更新
+                updateForegroundNotification("呼出タイムアウト（Ack未着）→2秒後に元に戻る...");
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                    updateForegroundNotification("着信を待機しています...");
+                }, 2000);
+            }, 5000);
         } catch (Exception e) {
             Log.e(TAG, "Failed to send call", e);
             android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -575,6 +586,7 @@ public class MqttForegroundService extends Service {
                 String forCmd = payload.optString("forCmd");
                 if ("call".equals(forCmd)) {
                     String fromName = payload.optString("from", "相手");
+                    Log.i(TAG, "[DEBUG] call ack received from: " + fromName);
                     showCallDeliveredNotification(fromName);
                 } else if ("chat".equals(forCmd)) {
                     // Chat ack received - could notify or just let JS handle it if app is open
