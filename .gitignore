@@ -7,10 +7,20 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
 *.local
+
+# Android build artifacts (consolidated)
+android/app/build/
+android/.gradle/
+android/local.properties
+android/capacitor-cordova-android-plugins/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
 
 # Editor directories and files
 .vscode/*
@@ -22,6 +32,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+*.iml
 
 # Temporary and log files
 *.txt
