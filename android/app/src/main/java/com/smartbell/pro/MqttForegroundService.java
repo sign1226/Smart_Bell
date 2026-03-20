@@ -48,16 +48,27 @@ public class MqttForegroundService extends Service {
     private final java.util.Map<Integer, String> deliveryTargets = new java.util.HashMap<>();
     private Intent pendingCallIntent;
     private android.net.ConnectivityManager.NetworkCallback networkCallback;
+    private android.media.ToneGenerator toneGenerator;
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        try {
+            toneGenerator = new android.media.ToneGenerator(android.media.AudioManager.STREAM_NOTIFICATION, 80);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to initialize ToneGenerator", e);
+        }
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             String action = intent.getAction();
+            Log.d(TAG, "onStartCommand: action=" + action);
             if (ACTION_START.equals(action) || ACTION_TRIGGER_CALL.equals(action) || ACTION_CALL.equals(action)) {
                 startForegroundAndLocks();
 
-                // Load settings from preferences if they are null (e.g., service restarted by
-                // system)
+                // Load settings from preferences if they are null (e.g., service restarted by system)
                 android.content.SharedPreferences prefs = getSharedPreferences("com.smartbell.pro.settings",
                         Context.MODE_PRIVATE);
                 if (host == null)
@@ -72,7 +83,8 @@ public class MqttForegroundService extends Service {
                     deviceId = prefs.getString("mqtt_device_id", null);
 
                 if (ACTION_TRIGGER_CALL.equals(action)) {
-                    // Update from intent if provided
+                    // ウィジェットからの呼出
+                    Log.d(TAG, "ACTION_TRIGGER_CALL received");
                     String incomingHost = intent.getStringExtra("host");
                     if (incomingHost != null)
                         host = incomingHost;
@@ -87,23 +99,10 @@ public class MqttForegroundService extends Service {
                         pendingCallIntent = intent;
                         connectMqtt();
                     }
-                } else {
-                    // Normal START - refresh deviceId and connect
-                    deviceId = intent.getStringExtra("deviceId");
-                    // Save settings for recovery (Boot/AlarmManager)
-                    prefs.edit()
-                            .putString("mqtt_host", host)
-                            .putInt("mqtt_port", port)
-                            .putString("mqtt_topic", topic)
-                            .putString("mqtt_client_id", clientId)
-                            .putString("mqtt_device_id", deviceId)
-                            .apply();
-                    connectMqtt();
-                }
-
-                if (ACTION_CALL.equals(action)) {
-                    Log.d(TAG, "Direct CALL action received from external intent");
-                    // Update from intent if provided (same as TRIGGER_CALL)
+                } else if (ACTION_CALL.equals(action)) {
+                    // ショートカット/外部Intentからの呼出
+                    // ※ deviceId はすでに prefs からロード済みなので上書きしない
+                    Log.d(TAG, "ACTION_CALL received. deviceId=" + deviceId);
                     String incomingHost = intent.getStringExtra("host");
                     if (incomingHost != null)
                         host = incomingHost;
@@ -112,12 +111,24 @@ public class MqttForegroundService extends Service {
                         port = incomingPort;
 
                     if (mqttClient != null && mqttClient.isConnected()) {
-                        triggerCall(intent, false); // Shortcut shows toast itself
+                        triggerCall(intent, false); // ShortcutHandlerActivity で既にToast表示済み
                     } else {
                         Log.d(TAG, "MQTT not connected for direct call, queuing...");
                         pendingCallIntent = intent;
                         connectMqtt();
                     }
+                } else {
+                    // ACTION_START: 通常起動 (WebUI等) - deviceIdをIntentから更新して保存
+                    deviceId = intent.getStringExtra("deviceId");
+                    Log.d(TAG, "ACTION_START: deviceId=" + deviceId);
+                    prefs.edit()
+                            .putString("mqtt_host", host)
+                            .putInt("mqtt_port", port)
+                            .putString("mqtt_topic", topic)
+                            .putString("mqtt_client_id", clientId)
+                            .putString("mqtt_device_id", deviceId)
+                            .apply();
+                    connectMqtt();
                 }
             } else if (ACTION_STOP.equals(action)) {
                 disconnectMqtt();
@@ -197,6 +208,10 @@ public class MqttForegroundService extends Service {
             wifiLock.release();
         }
         cancelServiceHealthCheck();
+        if (toneGenerator != null) {
+            toneGenerator.release();
+            toneGenerator = null;
+        }
     }
 
     @Override
@@ -277,6 +292,14 @@ public class MqttForegroundService extends Service {
             if (mqttClient != null) {
                 if (mqttClient.isConnected()) {
                     Log.d(TAG, "MQTT client already connected.");
+                    // pendingCallIntent がある場合は接続済みのまま処理する
+                    if (pendingCallIntent != null) {
+                        Log.d(TAG, "Processing pendingCallIntent on already-connected client.");
+                        String pendingAction = pendingCallIntent.getAction();
+                        boolean showToast = !ACTION_CALL.equals(pendingAction);
+                        triggerCall(pendingCallIntent, showToast);
+                        pendingCallIntent = null;
+                    }
                     return;
                 }
                 // If it exists but not connected, try to connect using same client
@@ -563,8 +586,7 @@ public class MqttForegroundService extends Service {
                     }
                 }
 
-                // Launch Activity
-                // Check timestamp for old calls
+                // タイムスタンプチェック（古い着信は無視）
                 long timestamp = payload.optLong("timestamp", 0);
                 long now = System.currentTimeMillis();
                 if (timestamp > 0 && (now - timestamp) > 60000) {
@@ -572,6 +594,7 @@ public class MqttForegroundService extends Service {
                     return;
                 }
 
+                // Launch Activity
                 Intent intent = new Intent(this, IncomingCallActivity.class);
                 intent.putExtra("caller_name", caller);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -639,7 +662,9 @@ public class MqttForegroundService extends Service {
         }
     }
 
+
     private void showCallDeliveredNotification(String targetName) {
+
         // フォアグラウンドサービス通知（ID=1）の本文を更新する。
         // これはAndroid 12+のバックグラウンド制限を受けない最も確実な方法。
         android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -648,13 +673,39 @@ public class MqttForegroundService extends Service {
                     "✅ " + targetName + " が着信しました", android.widget.Toast.LENGTH_SHORT).show();
         });
 
-        // バイブレーションで通知（VIBRATE権限は自動付与、バックグラウンドでも確実に動作）
-        android.os.Vibrator vibrator = (android.os.Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        if (vibrator != null && vibrator.hasVibrator()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(android.os.VibrationEffect.createOneShot(300, android.os.VibrationEffect.DEFAULT_AMPLITUDE));
-            } else {
-                vibrator.vibrate(300);
+        // 設定からバイブと音の有効無効を取得（デフォルトTRUE）
+        android.content.SharedPreferences prefs = getSharedPreferences("com.smartbell.pro.settings", Context.MODE_PRIVATE);
+        boolean vibrateEnabled = prefs.getBoolean("ack_vibrate", true);
+        boolean soundEnabled = prefs.getBoolean("ack_sound", true);
+
+        // バイブレーションで通知（リズムパルス選択）
+        if (vibrateEnabled) {
+            android.os.Vibrator vibrator = (android.os.Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            if (vibrator != null && vibrator.hasVibrator()) {
+                String patternStr = prefs.getString("ack_vibrate_pattern", "double");
+                long[] pattern;
+                if ("single".equals(patternStr)) {
+                    pattern = new long[]{0, 200}; // 単発
+                } else if ("triple".equals(patternStr)) {
+                    pattern = new long[]{0, 100, 100, 100, 100, 100}; // 3連
+                } else {
+                    pattern = new long[]{0, 100, 100, 400}; // 2連(標準/double)
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(android.os.VibrationEffect.createWaveform(pattern, -1));
+                } else {
+                    vibrator.vibrate(pattern, -1);
+                }
+            }
+        }
+
+        // 電子音で通知（ピッ、ピー）
+        if (soundEnabled && toneGenerator != null) {
+            try {
+                toneGenerator.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 300);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to play ack tone", e);
             }
         }
 

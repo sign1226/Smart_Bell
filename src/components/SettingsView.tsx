@@ -18,6 +18,11 @@ export const SettingsView: React.FC = () => {
     const [vibrationEnabled, setVibrationEnabled] = useState<boolean>(true);
     const [vibrationPattern, setVibrationPattern] = useState<string>('standard');
     const [isOptimizingBattery, setIsOptimizingBattery] = useState<boolean>(false);
+    
+    // 送信完了(Ack)フィードバック設定
+    const [ackVibrationEnabled, setAckVibrationEnabled] = useState<boolean>(true);
+    const [ackVibrationPattern, setAckVibrationPattern] = useState<string>('double');
+    const [ackSoundEnabled, setAckSoundEnabled] = useState<boolean>(true);
 
     useEffect(() => {
         // バッテリー最適化の状態チェック
@@ -55,6 +60,15 @@ export const SettingsView: React.FC = () => {
 
         const savedVibPattern = localStorage.getItem('bell_vibration_pattern');
         if (savedVibPattern) setVibrationPattern(savedVibPattern);
+
+        const savedAckVibEnabled = localStorage.getItem('bell_ack_vibration_enabled');
+        if (savedAckVibEnabled !== null) setAckVibrationEnabled(savedAckVibEnabled === 'true');
+
+        const savedAckVibPattern = localStorage.getItem('bell_ack_vibration_pattern');
+        if (savedAckVibPattern) setAckVibrationPattern(savedAckVibPattern);
+
+        const savedAckSoundEnabled = localStorage.getItem('bell_ack_sound_enabled');
+        if (savedAckSoundEnabled !== null) setAckSoundEnabled(savedAckSoundEnabled === 'true');
     }, []);
 
     const handleBatteryRequest = async () => {
@@ -75,6 +89,9 @@ export const SettingsView: React.FC = () => {
             localStorage.setItem('bell_chat_sound', selectedChatRingtone);
             localStorage.setItem('bell_vibration_enabled', vibrationEnabled.toString());
             localStorage.setItem('bell_vibration_pattern', vibrationPattern);
+            localStorage.setItem('bell_ack_vibration_enabled', ackVibrationEnabled.toString());
+            localStorage.setItem('bell_ack_vibration_pattern', ackVibrationPattern);
+            localStorage.setItem('bell_ack_sound_enabled', ackSoundEnabled.toString());
 
             // Native側に設定を保存 (ウィジェット/サービス用)
             IncomingCall.saveRingtoneSettings({
@@ -85,9 +102,15 @@ export const SettingsView: React.FC = () => {
                 vibrationPattern
             });
             IncomingCall.saveChatSettings({ uri: selectedChatRingtone });
+            IncomingCall.saveAckSettings({
+                vibrationEnabled: ackVibrationEnabled,
+                vibrationPattern: ackVibrationPattern,
+                soundEnabled: ackSoundEnabled
+            });
         }, 1000);
         return () => clearTimeout(timer);
-    }, [localConfig, selectedRingtone, selectedChatRingtone, vibrationEnabled, vibrationPattern, setConfig]);
+    }, [localConfig, selectedRingtone, selectedChatRingtone, vibrationEnabled, vibrationPattern, 
+        ackVibrationEnabled, ackVibrationPattern, ackSoundEnabled, setConfig]);
 
     if (view === 'contacts') {
         return <ContactsView onBack={() => setView('main')} />;
@@ -265,6 +288,49 @@ export const SettingsView: React.FC = () => {
                         </option>
                     ))}
                 </select>
+            </section>
+
+            <section style={{ marginBottom: '25px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', fontWeight: 'bold' }}>
+                    <Vibrate size={18} style={{ color: '#10b981' }} />
+                    送信完了フィードバック (Ack)
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', background: '#111', padding: '15px', borderRadius: '12px', border: '1px solid #333' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>バイブレーション有効</span>
+                        <input
+                            type="checkbox"
+                            checked={ackVibrationEnabled}
+                            onChange={(e) => setAckVibrationEnabled(e.target.checked)}
+                            style={{ width: '24px', height: '24px', accentColor: '#10b981' }}
+                        />
+                    </div>
+
+                    {ackVibrationEnabled && (
+                        <div>
+                            <label style={{ display: 'block', fontSize: '0.8rem', opacity: 0.7, marginBottom: '8px' }}>パターン</label>
+                            <select
+                                value={ackVibrationPattern}
+                                onChange={(e) => setAckVibrationPattern(e.target.value)}
+                                style={{ width: '100%', padding: '10px', background: '#000', border: '1px solid #444', color: '#fff', borderRadius: '8px' }}
+                            >
+                                <option value="double">2連パルス (おすすめ)</option>
+                                <option value="single">単発 (短い)</option>
+                                <option value="triple">3連パルス</option>
+                            </select>
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #222', paddingTop: '10px' }}>
+                        <span>電子音 (ピッ、ピー)</span>
+                        <input
+                            type="checkbox"
+                            checked={ackSoundEnabled}
+                            onChange={(e) => setAckSoundEnabled(e.target.checked)}
+                            style={{ width: '24px', height: '24px', accentColor: '#10b981' }}
+                        />
+                    </div>
+                </div>
             </section>
 
             <section id="settings-mqtt-card" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>

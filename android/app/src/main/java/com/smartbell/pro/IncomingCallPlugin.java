@@ -238,6 +238,25 @@ public class IncomingCallPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void saveAckSettings(PluginCall call) {
+        Boolean vibrationEnabled = call.getBoolean("vibrationEnabled", true);
+        String vibrationPattern = call.getString("vibrationPattern", "double");
+        Boolean soundEnabled = call.getBoolean("soundEnabled", true);
+
+        android.content.SharedPreferences.Editor editor = getContext()
+                .getSharedPreferences("com.smartbell.pro.settings", android.content.Context.MODE_PRIVATE).edit();
+        
+        editor.putBoolean("ack_vibrate", vibrationEnabled != null && vibrationEnabled);
+        editor.putString("ack_vibrate_pattern", vibrationPattern);
+        editor.putBoolean("ack_sound", soundEnabled != null && soundEnabled);
+        editor.apply();
+
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
     public void startRingtone(PluginCall call) {
         new RingtoneUtils(getContext()).playRingtone(null); // Utils handles the preference lookup
         JSObject ret = new JSObject();

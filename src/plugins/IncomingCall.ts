@@ -12,6 +12,11 @@ export interface IncomingCallPlugin {
         vibrationPattern?: string
     }): Promise<{ success: boolean }>;
     saveChatSettings(options: { uri: string }): Promise<void>;
+    saveAckSettings(options: {
+        vibrationEnabled: boolean,
+        vibrationPattern: string,
+        soundEnabled: boolean
+    }): Promise<{ success: boolean }>;
     startRingtone(): Promise<{ success: boolean }>;
     stopRingtone(): Promise<{ success: boolean }>;
     checkPermissions(): Promise<{ overlay: boolean, batteryOptimization: boolean, notifications: boolean }>;
