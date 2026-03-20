@@ -374,9 +374,27 @@ public class MqttForegroundService extends Service {
 
         JSONObject payload = new JSONObject();
         try {
+            // deviceId が未ロードの場合は prefs から再取得（ウィジェット/ショートカット時の対策）
+            if (deviceId == null || deviceId.isEmpty()) {
+                android.content.SharedPreferences prefs = getSharedPreferences("com.smartbell.pro.settings", Context.MODE_PRIVATE);
+                deviceId = prefs.getString("mqtt_device_id", null);
+                clientId = prefs.getString("mqtt_client_id", clientId);
+                Log.d(TAG, "Reloaded deviceId from prefs: " + deviceId);
+            }
+
             payload.put("cmd", "call");
             payload.put("from", clientId != null ? clientId : "デバイス");
-            payload.put("fromId", deviceId);
+            payload.put("fromId", deviceId != null ? deviceId : ""); // nullの場合は空文字(Ack届かない)
+
+            // Ack を受け取るため、自分のトピックを確実にサブスクライブしておく
+            if (mqttClient != null && mqttClient.isConnected() && deviceId != null && !deviceId.isEmpty()) {
+                try {
+                    mqttClient.subscribe("smartbell/call/" + deviceId, 1);
+                    Log.d(TAG, "Re-subscribed to own call topic for Ack: " + deviceId);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to re-subscribe for Ack", e);
+                }
+            }
             if (showCallingToast) {
                 android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
                 final String finalTargetName = targetName;
