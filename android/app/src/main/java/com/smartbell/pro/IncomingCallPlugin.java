@@ -239,6 +239,7 @@ public class IncomingCallPlugin extends Plugin {
 
     @PluginMethod
     public void saveAckSettings(PluginCall call) {
+        // Ackフィードバック（送信成功時のバイブ・音）の設定を保存
         Boolean vibrationEnabled = call.getBoolean("vibrationEnabled", true);
         String vibrationPattern = call.getString("vibrationPattern", "double");
         Boolean soundEnabled = call.getBoolean("soundEnabled", true);

@@ -664,9 +664,7 @@ public class MqttForegroundService extends Service {
 
 
     private void showCallDeliveredNotification(String targetName) {
-
-        // フォアグラウンドサービス通知（ID=1）の本文を更新する。
-        // これはAndroid 12+のバックグラウンド制限を受けない最も確実な方法。
+        // トーストによる即時フィードバック
         android.os.Handler mainHandler = new android.os.Handler(android.os.Looper.getMainLooper());
         mainHandler.post(() -> {
             android.widget.Toast.makeText(getApplicationContext(),
@@ -709,7 +707,7 @@ public class MqttForegroundService extends Service {
             }
         }
 
-        // フォアグラウンドサービス通知本文を「着信しました」に更新する（最も確実な表示方法）
+        // 常駐通知の本文を更新して視覚的にも通知
         updateForegroundNotification("✅ " + targetName + " が着信しました");
 
         // 5秒後に元の待機メッセージに戻す
@@ -722,7 +720,7 @@ public class MqttForegroundService extends Service {
 
     private void updateForegroundNotification(String contentText) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationManager manager = getSystemService(NotificationManager.class);
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             if (manager == null) return;
 
             Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
@@ -733,7 +731,7 @@ public class MqttForegroundService extends Service {
                     .setCategory(NotificationCompat.CATEGORY_SERVICE)
                     .setOngoing(true)
                     .build();
-            // ID=1 はフォアグラウンドサービス通知と同じIDで上書き更新
+            // ID=1 で既存のサービス通知を上書き更新
             manager.notify(1, notification);
         }
     }

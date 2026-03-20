@@ -62,7 +62,11 @@ public class RingtoneUtils {
             mediaPlayer.start();
         } catch (Exception e) {
             Log.e(TAG, "Failed to play ringtone", e);
-            // MediaPlayer failed, but we still want to try vibration if enabled
+            if (mediaPlayer != null) {
+                mediaPlayer.release();
+                mediaPlayer = null;
+            }
+            // MediaPlayerが失敗してもバイブレーションは継続を試みる
         }
 
         // Vibration logic
